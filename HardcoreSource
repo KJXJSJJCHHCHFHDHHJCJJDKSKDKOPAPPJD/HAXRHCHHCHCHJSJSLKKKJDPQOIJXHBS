@@ -180,17 +180,10 @@ part.Size = Vector3.new(1, 1, 1)
 part.CFrame = cf
 part.Parent = Workspace
 
-local url = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/XRecorder_Edited_20260805_02.mp3"
 
-local file = "RoomCenterSound.mp3"
 
-if not isfile(file) then
-writefile(file, game:HttpGet(url))
-end
-
-local sound = Instance.new("Sound")
+local sound = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/XRecorder_Edited_20260805_02.mp3?raw=true","Lobbyforsure")
 sound.Name = "CourtSound"
-sound.SoundId = (getcustomasset or getsynasset)(file)
 sound.Volume = 1.5
 sound.RollOffMaxDistance = 55
 sound.Parent = part
