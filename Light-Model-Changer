@@ -2,7 +2,13 @@ coroutine.wrap(function()
 	local CurrentRooms = workspace:WaitForChild("CurrentRooms")
 	local LatestRoom = game:GetService("ReplicatedStorage"):WaitForChild("GameData"):WaitForChild("LatestRoom")
 
-	local LightReplaceModel = game:GetObjects(getcustomasset("Place_131351567799504_Model_LightStand_1785518305.txt"))[1]
+	local FileName = "LightStand.txt"
+
+if not isfile(FileName) then
+	writefile(FileName, game:HttpGet("https://raw.githubusercontent.com/lynguyen26031993-design/-u/refs/heads/main/Place_131351567799504_Model_LightStand_1785518305.txt"))
+end
+
+local LightReplaceModel = game:GetObjects(getcustomasset(FileName))[1]
 
 	local function SetupLightStand(model)
 	if not model:IsA("Model") then
