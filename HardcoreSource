@@ -3,6 +3,28 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
+local CaptionHolder = game:GetService("Players").LocalPlayer.PlayerGui.MainUI:WaitForChild("CaptionHolder")
+
+local function UpdateGradient(TextLabel)
+	local Gradient = TextLabel:FindFirstChildOfClass("UIGradient")
+
+	if Gradient then
+		Gradient.Enabled = true
+
+		Gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.52807, Color3.new(0.994803, 0.985949, 0.91471)),
+			ColorSequenceKeypoint.new(1, Color3.new(1, 0.797412, 0.452261))
+		})
+	end
+end
+
+CaptionHolder.ChildAdded:Connect(function(Child)
+	if Child:IsA("TextLabel") then
+		UpdateGradient(Child)
+	end
+end)
+
 -- Bộ nhớ cache tạm thời trong RAM (không lưu vào ổ cứng / file)
 local MEMORY_CACHE = {}
 
@@ -123,8 +145,6 @@ require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("
 task.wait(2)
 require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("Origin by pyxlfunkin and credits to pyxlfunkin's team. ",true)
 task.wait(2)
-require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("PLEASE, IF MODIFIERS BUTTON DOESN'T WORK, TYPE '/modifier' ON THE CHAT AND SEND IT",true)
-task.wait(2)
 require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("Enjoy!",true)
 end)
 
@@ -134,10 +154,6 @@ end)
 
 task.spawn(function()
 SafeLoadFileCached("https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Hidable-Table")
-end)
-
-task.spawn(function()
-SafeLoadFileCached("https://raw.githubusercontent.com/eoyoustme/Hardcore/refs/heads/main/Guiding%20light")
 end)
 
 task.spawn(function()
@@ -1195,6 +1211,12 @@ Jumpscare.Name = "ThemebLla"
 Jumpscare.PlaybackSpeed = 1
 Jumpscare:Play()
 
+local EndLah = GetGitSound("https://github.com/eoyoustme/Hardcore/blob/main/hotel%20prelude%20end.mp3?raw=true?raw=true","Kckkdkxjjjsjsjjs")
+EndLah.Parent = workspace
+EndLah.Volume = 1.3
+EndLah.Name = "HotelPrelude"
+EndLah.PlaybackSpeed = 1
+
 task.spawn(function()
 task.wait(7.6)
 local TweenService = game:GetService("TweenService")
@@ -1212,9 +1234,9 @@ CanvasGroup.BackgroundTransparency = 1
 CanvasGroup.GroupTransparency = 1   
 CanvasGroup.Parent = ScreenGui  
 
-local targetTextSize = 40  
+local targetTextSize = 35
 if UserInputService.TouchEnabled then   
-	targetTextSize = 25  
+	targetTextSize = 20
 end  
 
 local TextLabel = Instance.new("TextLabel")  
@@ -1279,18 +1301,53 @@ end)
 local stop = false
 
 task.spawn(function()
-workspace.ChildAdded:Connect(function(v)
-if not stop then
-if v:IsA("Model") and v.Name == "RushMoving" then
-task.wait(7)
-local theme = workspace:FindFirstChild("ThemebLla")
-if theme then
-theme:Destroy()
-end
-stop = true
-end
-end
-end)
+	workspace.ChildAdded:Connect(function(v)
+		if not stop then
+			if v:IsA("Model") and (
+				v.Name == "RushMoving"
+				or v.Name == "RipperBla"
+				or v.Name == "CeaseBla"
+				or v.Name == "Eyes"
+				or v.Name == "Frostyma5n"
+				or v.Name == "AmbushMoving"
+				or v.Name == "SilenceReignited"
+				or v.Name == "DeerGod"
+				or v.Name == "Rebound"
+			) then
+			
+			local captionTexts = {
+					"Who tf is joe?!?!",
+					"thinknoodles used a script executor for his shears video. ban him now!!!",
+					"Good luck!",
+					"Also try AREA:001!", 
+					"🦬 Laser Boars", 
+					"Freak L_0 All my homies hate L_0",
+					"ew what is dat fit?? retrosloop detected eww!", 
+					"Do Not.", 
+					"Five Nights at Freddy's, Is this where you want to be? I just don't get it!!! Why do you want to stay?", 
+					"Have fun! (you wont)", 
+					"can you send me a krampus key please i dreamed of having it please", 
+					"Fun have? (wont you!)", 
+					"The cute kitties are already behind you (this is your cue to run)", 
+					"Holy Crap... Lois.. I'm Balling", 
+				}
+				local chosenCaption = captionTexts[math.random(#captionTexts)]
+
+				pcall(function()
+					require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption(chosenCaption, true)
+				end)
+			
+			EndLah:Play() 
+
+				local theme = workspace:FindFirstChild("ThemebLla")
+				if theme then
+					theme:Destroy()
+				end
+
+				stop = true
+			end
+		end
+	end)
 end)
 
 local Players = game:GetService("Players")
@@ -1380,20 +1437,21 @@ local function GetMultiMonsterRoll(cycle)
 		hash = (hash * 16777619) % 4294967296
 	end
 
-	return (hash % 100) + 1
+	-- Roll từ 0 đến gần 100, hỗ trợ decimal %
+	return (hash / 4294967296) * 100
 end
 
 local MultimonsterEntity = {
 	Name = "Multimonster",
 	Interval = 20,
-	Chance = 2,
+	Chance = 0.7,
 	Url = "https://raw.githubusercontent.com/PAKKALCKKWKKJXIODKRBFHHAUJCJJJSNDJ/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/multimonstet"
 }
 
 local Frostbite = {
 	Name = "Frostbite",
 	Interval = 10,
-	Chance = 1,
+	Chance = 0.5,
 	Url = "https://raw.githubusercontent.com/iccdjkkkkskskhdgdgegvbfbgncjjdudejdjvi/REBLAHARDCOREDI/refs/heads/main/Frostbite"
 }
 
@@ -1412,7 +1470,7 @@ task.spawn(function()
 
 		local now = tick()
 
-		-- Multimonster
+		--// Multimonster
 		if now - MultiStartTime >= MultimonsterEntity.Interval then
 			MultiStartTime = now
 			MultiCycle += 1
@@ -1433,7 +1491,7 @@ task.spawn(function()
 				"| Cycle:", MultiCycle
 			)
 
-			if roll <= Chance then
+			if roll < Chance then
 				print("[Multimonster] SPAWNED!")
 				SafeLoadFileCached(MultimonsterEntity.Url)
 			else
@@ -1441,7 +1499,7 @@ task.spawn(function()
 			end
 		end
 
-		-- Frostbite
+		--// Frostbite
 		if now - FrostStartTime >= Frostbite.Interval then
 			FrostStartTime = now
 			FrostCycle += 1
@@ -1452,9 +1510,10 @@ task.spawn(function()
 				Chance = 25
 			end
 
+			-- Roll riêng cho Frostbite
 			local roll = GetMultiMonsterRoll(FrostCycle)
 
-			if roll <= Chance then
+			if roll < Chance then
 				SafeLoadFileCached(Frostbite.Url)
 			end
 		end
