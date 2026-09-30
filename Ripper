@@ -296,7 +296,7 @@ end)
 	task.spawn(function()
 		local sound5 = Instance.new("Sound")
 		sound5.PlaybackSpeed = 1
-		sound5.Volume = 0.6
+		sound5.Volume = 1.8
 		sound5.SoundId = "rbxassetid://101665501585468"
 		sound5.Parent = workspace
 		sound5:Play()
