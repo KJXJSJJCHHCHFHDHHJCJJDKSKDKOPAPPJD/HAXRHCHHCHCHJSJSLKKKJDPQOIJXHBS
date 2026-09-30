@@ -361,6 +361,7 @@ local Deerlord = LoadModel(
 
 local s = Deerlord
 s.Parent = workspace
+s.Name = "DeerGod" 
 Teleport.Parent = s.RushNew
 
 local death = true
