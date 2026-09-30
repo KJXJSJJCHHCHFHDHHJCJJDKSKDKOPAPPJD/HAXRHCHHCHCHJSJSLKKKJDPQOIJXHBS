@@ -111,29 +111,236 @@ end
 
 _Idx57.Parent = workspace
 _Idx57.Name = "A60ButSilence"
-local partneeded = _Idx57:FindFirstChild("Multi")
 
-	-- Load CensorBox
-	local CensorURL = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_6839171747_BillboardGui_MonsterGui_1789749680.txt"
-	local CensorFile = "CensorBox.txt"
+local model = _Idx57
+--==================================================
+-- CENSOR BOX SYSTEM
+--==================================================
 
-	if not isfile(CensorFile) then
-		writefile(CensorFile, game:HttpGet(CensorURL))
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+
+--==================================================
+-- FIND BASEPART
+--==================================================
+
+local TargetPart
+
+if model:IsA("BasePart") then
+	TargetPart = model
+else
+	TargetPart = model:FindFirstChildWhichIsA(
+		"BasePart",
+		true
+	)
+end
+
+if not TargetPart then
+	return
+end
+
+--==================================================
+-- GUI
+--==================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "CensorBoxGui"
+Gui.IgnoreGuiInset = true
+Gui.ResetOnSpawn = false
+Gui.Parent = LPlayer:WaitForChild("PlayerGui")
+
+--==================================================
+-- MAIN CENSOR BOX
+--==================================================
+
+local CensorBox = Instance.new("Frame")
+CensorBox.Name = "CensorBox"
+CensorBox.AnchorPoint = Vector2.new(0.5, 0.5)
+CensorBox.BackgroundColor3 = Color3.new(0, 0, 0)
+CensorBox.BorderSizePixel = 0
+CensorBox.Visible = true
+CensorBox.Parent = Gui
+
+local BaseDistance = 25
+local BaseSize = 100
+
+--==================================================
+-- MAIN CENSOR LOOP
+--==================================================
+
+local CensorConnection
+
+CensorConnection = RunService.RenderStepped:Connect(function()
+
+	if not model
+		or not model.Parent
+		or not TargetPart
+		or not TargetPart.Parent
+		or not Camera
+		or not Camera.Parent then
+
+		CensorConnection:Disconnect()
+		CensorConnection = nil
+
+		return
 	end
 
-	local censor = game:GetObjects(getcustomasset(CensorFile))[1]
+	local ScreenPosition =
+		Camera:WorldToViewportPoint(
+			TargetPart.Position
+		)
 
-	if censor and partneeded then
-		censor.Parent = partneeded
-censor:FindFirstChildWhichIsA("Frame").BorderColor3 = Color3.fromRGB(0, 0, 0)
-censor.AlwaysOnTop = true
-		censor.StudsOffset = censor.StudsOffset - Vector3.new(0, 3, 0)
+	if ScreenPosition.Z <= 0 then
+		CensorBox.Visible = false
+		return
 	end
+
+	CensorBox.Visible = true
+
+	CensorBox.Position = UDim2.fromOffset(
+		ScreenPosition.X,
+		ScreenPosition.Y
+	)
+
+	local Distance =
+		(Camera.CFrame.Position - TargetPart.Position).Magnitude
+
+	local Scale =
+		BaseDistance / math.max(Distance, 0.1)
+
+	Scale = math.clamp(
+		Scale,
+		0.15,
+		3
+	)
+
+	local Size = BaseSize * Scale
+
+	CensorBox.Size = UDim2.fromOffset(
+		Size,
+		Size
+	)
+end)
+
+--==================================================
+-- SECONDARY CENSOR BOX LOOP
+--==================================================
+
+task.spawn(function()
+
+	while model
+		and model.Parent
+		and TargetPart
+		and TargetPart.Parent do
+
+		task.wait(0.1)
+
+		if not model
+			or not model.Parent
+			or not TargetPart
+			or not TargetPart.Parent then
+
+			break
+		end
+
+		local Offset = Vector3.new(
+			math.random(-400, 400) / 100,
+			math.random(-400, 400) / 100,
+			math.random(-400, 400) / 100
+		)
+
+		if Offset.Magnitude > 4 then
+			Offset = Offset.Unit * 4
+		end
+
+		local RandomWorldPosition =
+			TargetPart.Position + Offset
+
+		local ScreenPosition =
+			Camera:WorldToViewportPoint(
+				RandomWorldPosition
+			)
+
+		if ScreenPosition.Z > 0 then
+
+			local Distance =
+				(Camera.CFrame.Position - RandomWorldPosition).Magnitude
+
+			local Scale =
+				BaseDistance / math.max(Distance, 0.1)
+
+			Scale = math.clamp(
+				Scale,
+				0.15,
+				3
+			)
+
+			local MainSize =
+				BaseSize * Scale
+
+			local CensorClone =
+				CensorBox:Clone()
+
+			CensorClone.Name =
+				"CensorBoxSecondary"
+
+			CensorClone.Size =
+				UDim2.fromOffset(
+					MainSize / 1.5,
+					MainSize / 1.5
+				)
+
+			CensorClone.Position =
+				UDim2.fromOffset(
+					ScreenPosition.X,
+					ScreenPosition.Y
+				)
+
+			CensorClone.Visible = true
+			CensorClone.Parent = Gui
+
+			task.delay(0.3, function()
+
+				if CensorClone
+					and CensorClone.Parent then
+
+					CensorClone:Destroy()
+				end
+			end)
+		end
+	end
+end)
+
+--==================================================
+-- CLEANUP WHEN ENTITY DISAPPEARS
+--==================================================
+
+task.spawn(function()
+
+	while model
+		and model.Parent
+		and TargetPart
+		and TargetPart.Parent do
+
+		task.wait(0.1)
+	end
+
+	if CensorConnection then
+		CensorConnection:Disconnect()
+		CensorConnection = nil
+	end
+
+	if Gui and Gui.Parent then
+		Gui:Destroy()
+	end
+end)
 	
 local chaseTrigger = false
 
-
-local model =  _Idx57
 
 	if model then
 		-- Tắt toàn bộ PointLight có sẵn
