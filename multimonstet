@@ -2219,6 +2219,8 @@ task.spawn(function()
 	while getgenv().spam do
 	
 		task.wait(SyncRandomInt(11, 15))
+
+if not getgenv().spam then return end
 		
 
 		if #RandomScripts > 0 then
