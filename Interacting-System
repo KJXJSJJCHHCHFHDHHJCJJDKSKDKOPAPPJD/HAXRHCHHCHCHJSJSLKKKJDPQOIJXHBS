@@ -286,7 +286,6 @@ local function SetupLockedDoor(door)
 
 	task.spawn(function()
 		local realPrompt
-		local knob
 
 		repeat
 			if not door.Parent then
@@ -294,22 +293,18 @@ local function SetupLockedDoor(door)
 			end
 
 			realPrompt = nil
-			knob = nil
 
 			for _, v in ipairs(door:GetDescendants()) do
 				if v:IsA("ProximityPrompt") and v.Name == "UnlockPrompt" then
 					realPrompt = v
-				end
-
-				if v:IsA("BasePart") and v.Name == "Knob" then
-					knob = v
+					break
 				end
 			end
 
-			if not realPrompt or not knob then
+			if not realPrompt then
 				task.wait()
 			end
-		until realPrompt and knob
+		until realPrompt
 
 		if not door.Parent then
 			return
@@ -336,6 +331,7 @@ local function SetupLockedDoor(door)
 		clone.Parent = door.Parent
 
 		local cloneDoor
+		local cloneKnob
 		local hinge
 
 		repeat
@@ -344,12 +340,15 @@ local function SetupLockedDoor(door)
 			end
 
 			cloneDoor = nil
+			cloneKnob = nil
 			hinge = nil
 
 			for _, v in ipairs(clone:GetDescendants()) do
 				if v:IsA("BasePart") then
 					if v.Name == "Door" then
 						cloneDoor = v
+					elseif v.Name == "Knob" then
+						cloneKnob = v
 					elseif v.Name == "Hinge" then
 						hinge = v
 					end
@@ -368,10 +367,10 @@ local function SetupLockedDoor(door)
 				end
 			end
 
-			if not cloneDoor then
+			if not cloneKnob or not cloneDoor then
 				task.wait()
 			end
-		until cloneDoor
+		until cloneDoor and cloneKnob
 
 		if not door.Parent or not clone.Parent then
 			return
@@ -396,7 +395,7 @@ local function SetupLockedDoor(door)
 		end
 
 		for _, v in ipairs(clone:GetDescendants()) do
-			if v:IsA("BasePart") or v:IsA("MeshPart") then
+			if v:IsA("BasePart") then
 				if v.Name == "Lock" or v.Name == "Hidden" then
 					v.Transparency = 1
 				end
@@ -434,12 +433,13 @@ local function SetupLockedDoor(door)
 		task.spawn(function()
 			local customPrompt
 
-			while door.Parent do
+			while door.Parent and clone.Parent do
 				if realPrompt
+					and realPrompt.Parent
 					and realPrompt.Enabled == false
 					and not customPrompt
-					and knob
-					and knob.Parent then
+					and cloneKnob
+					and cloneKnob.Parent then
 
 					customPrompt = Instance.new("ProximityPrompt")
 					customPrompt.Style = Enum.ProximityPromptStyle.Custom
@@ -447,10 +447,17 @@ local function SetupLockedDoor(door)
 					customPrompt.ObjectText = "Door"
 					customPrompt.MaxActivationDistance = 7
 					customPrompt.RequiresLineOfSight = false
-					customPrompt.Parent = knob
+
+					-- FIX: prompt phải nằm trên Knob của CLONE
+					customPrompt.Parent = cloneKnob
 
 					customPrompt.Triggered:Connect(function()
+						if not customPrompt or not customPrompt.Parent then
+							return
+						end
+
 						customPrompt:Destroy()
+						customPrompt = nil
 
 						for _, v in ipairs(clone:GetDescendants()) do
 							if v:IsA("BasePart") and v.Name == "Collision" then
@@ -466,6 +473,7 @@ local function SetupLockedDoor(door)
 						local hrp = char:WaitForChild("HumanoidRootPart")
 
 						local cf, size = clone:GetBoundingBox()
+
 						local targetPos =
 							cf.Position
 							- cf.LookVector * (size.Z / 2 + 2)
@@ -530,25 +538,34 @@ local function SetupLockedDoor(door)
 							Anim.AnimationId = "rbxassetid://18759987341"
 
 							local Track = hum:LoadAnimation(Anim)
+
 							Track:AdjustSpeed(0.3)
 							Track:Play()
 
 							task.wait(0.3)
 
-							Track:AdjustSpeed(0)
+							if Track then
+								Track:AdjustSpeed(0)
+							end
 
 							task.wait(0.3)
 
-							Track:AdjustSpeed(0.5)
+							if Track then
+								Track:AdjustSpeed(0.5)
+							end
 
 							task.wait(0.59)
 							task.wait(0.01)
 
-							wee:Cancel()
+							if wee then
+								wee:Cancel()
+							end
 
-							hrp.CFrame =
-								hrp.CFrame
-								+ hrp.CFrame.LookVector * 8
+							if hrp.Parent then
+								hrp.CFrame =
+									hrp.CFrame
+									+ hrp.CFrame.LookVector * 8
+							end
 
 							Track:Stop()
 							Anim:Destroy()
@@ -586,7 +603,10 @@ local function SetupLockedDoor(door)
 						end)
 					end)
 
-					break
+				elseif customPrompt
+					and not customPrompt.Parent then
+
+					customPrompt = nil
 				end
 
 				task.wait(0.01)
@@ -1209,7 +1229,7 @@ local function SetupWardrobe(wardrobe)
 					)
 
 				local anim = Instance.new("Animation")
-				anim.AnimationId = "rbxassetid://9461439496"
+				anim.AnimationId = "rbxassetid://98224925603818"
 
 				local trackAnim =
 					animator:LoadAnimation(anim)
@@ -1221,7 +1241,7 @@ local function SetupWardrobe(wardrobe)
 				trackAnim:AdjustSpeed(0.6)
 
 				task.spawn(function()
-					task.wait(0.5)
+					trackAnim.Stopped:Wait()
 
 					if trackAnim then
 						trackAnim:Stop()
