@@ -432,12 +432,14 @@ local function SetupLockedDoor(door)
 
 		task.spawn(function()
 			local customPrompt
+			local triggered = false
 
 			while door.Parent and clone.Parent do
 				if realPrompt
 					and realPrompt.Parent
 					and realPrompt.Enabled == false
 					and not customPrompt
+					and not triggered
 					and cloneKnob
 					and cloneKnob.Parent then
 
@@ -452,12 +454,17 @@ local function SetupLockedDoor(door)
 					customPrompt.Parent = cloneKnob
 
 					customPrompt.Triggered:Connect(function()
+					if triggered then
+					return
+				end
+
+				triggered = true
+				
 						if not customPrompt or not customPrompt.Parent then
 							return
 						end
 
 						customPrompt:Destroy()
-						customPrompt = nil
 
 						for _, v in ipairs(clone:GetDescendants()) do
 							if v:IsA("BasePart") and v.Name == "Collision" then
