@@ -1302,7 +1302,7 @@ local stop = false
 
 task.spawn(function()
 	workspace.ChildAdded:Connect(function(v)
-		if not stop then
+		if not stop and Jumpscare.IsPlaying then
 			if v:IsA("Model") and (
 				v.Name == "RushMoving"
 				or v.Name == "RipperBla"
@@ -1330,6 +1330,11 @@ task.spawn(function()
 					"Fun have? (wont you!)", 
 					"The cute kitties are already behind you (this is your cue to run)", 
 					"Holy Crap... Lois.. I'm Balling", 
+					"hog.", 
+					"CEASE your movement. HALT your movement.", 
+					"it will cost 4353487543987543853485 knobs to open the next door", 
+					"pathfinding broke for over 2 years, to the hardcore lightstand. so hardcore", 
+					"@geodude what's up just curious totally wasn't pinging you for a krampus key 🥺 I wannar krampus\nkiwi hasn't released the haste script" 
 				}
 				local chosenCaption = captionTexts[math.random(#captionTexts)]
 
