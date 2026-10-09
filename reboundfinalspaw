@@ -1,5 +1,5 @@
 --[[     __      __          _            _       ______       _   _ _            _____                                       __      _____       \ \    / /         ()          ( )     |  |     | | () |          / |                                      \ \    / / \       \ \  / /   _ _ __  ___  ___   |/ ___  | |   _ __ | | | | _   _  | (  _ __   __ ___      ___ __   ___ _ __   \ \  / /   ) |       \ / / | | | ' | \ / / | | | / | |  | | ' | | | | | | |  _ | ' \ / ` \ \ /\ / / ' \ / _ \ '|   \ / /   / /         \  /| || | | | | |>  <| || | _ \ | || | | | || | || || |  ) | |) | (| |\ V  V /| | | |  _/ |       \  /   / /          /  _, || ||//_\,| |/ ||| ||_||_|_, | |___/| ./ _,| _/_/ || ||___||        /   |_|              / |                                                   / |        | |                                                                |/                                                   |/         || ]]--
--- bgh
+
 local function GetGitSound(url, name)
 	if not isfile(name .. ".mp3") then
 		writefile(name .. ".mp3", game:HttpGet(url))
@@ -855,7 +855,7 @@ Module.Create = function(self, config: any): any?
     }
 end
 
-Module.Run = function(self, entity: any, copyEntity: boolean)
+Module.Run = function(self, entity: any, copyEntity: boolean, noClones: boolean)
     if copyEntity == true then
         self:Run(CloneTable(entity), false)
         return
@@ -886,6 +886,7 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
     local debug = entity.Debug
     
     local snd = blueSound:Clone()
+snd.Name = "ReboundDamageSound"
 snd.Parent = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
 
     model:SetAttribute("Running", true)
@@ -1116,7 +1117,7 @@ end
     local count = 1
     local typ = config.Rebounding.Type:upper()
     local delaylah = 1.5
-    local total = 20
+    local total = 14
     local pathid = 0
 
         local function moveTo(obj, v, valid)
@@ -1232,26 +1233,59 @@ end
             return obj.Parent ~= nil
         end
         
+task.spawn(function()
+    movePath(model)
 
+    if entity:IsAlive() then
+        entity:Despawn()
+    end
+end)
 
-for i = 1, total do
-    if not entity:IsAlive() then break end
+if not noClones then
+    for i = 1, total do
+        if not entity:IsAlive() then break end
 
-    local obj = model:Clone()
-    obj.Parent = workspace
-    obj:PivotTo(spawn.CFrame + Vector3.new(0, config.Entity.HeightOffset, 0))
+        local obj = model:Clone()
 
-    task.spawn(function()
-        movePath(obj)
-
-        if obj.Parent then
-            obj:Destroy()
+        for _, v in next, obj:GetDescendants() do
+            if v.Name == "ReboundDamageSound" then
+                v:Destroy()
+            end
         end
-    end)
 
-    if i < total then
-        task.wait(delaylah)
-        delaylah /= 1.5
+        for attr, val in next, CONST.ATTR.ENTITY do
+            obj:SetAttribute(attr, val)
+        end
+
+        local old = obj:FindFirstChild("RoomsEntered")
+        if old then
+            old:Destroy()
+        end
+
+        local re = Instance.new("Configuration")
+        re.Name = "RoomsEntered"
+        re.Parent = obj
+
+        local ce = {
+            Model = obj,
+            Config = config,
+            Debug = CloneTable(debug),
+            RunCallback = entity.RunCallback,
+            IsAlive = entity.IsAlive,
+            Pause = entity.Pause,
+            Resume = entity.Resume,
+            Despawn = entity.Despawn,
+            SetCallback = entity.SetCallback
+        }
+
+        task.spawn(function()
+            Module:Run(ce, false, true)
+        end)
+
+        if i < total then
+            task.wait(delaylah)
+            delaylah /= 1.5
+        end
     end
 end
     end)
