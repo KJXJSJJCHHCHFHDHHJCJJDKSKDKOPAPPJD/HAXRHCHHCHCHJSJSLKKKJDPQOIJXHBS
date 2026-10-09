@@ -1,0 +1,159 @@
+local pla = game:GetService("Players")
+local run = game:GetService("RunService")
+
+local lpla = pla.LocalPlayer
+local gui = lpla.PlayerGui
+local main = gui:WaitForChild("MainUI")
+local prompt = main:WaitForChild("MainFrame"):WaitForChild("PromptFrame")
+
+local pos
+local clone
+local con
+local hidden = false
+local oldpos
+
+local function stop()
+	if con then
+		con:Disconnect()
+		con = nil
+	end
+
+	if clone then
+		clone:Destroy()
+		clone = nil
+	end
+end
+
+local function hideimg(frame)
+	local img = frame:FindFirstChild("CenterImage", true)
+
+	if img and img:IsA("ImageLabel") then
+		img.Visible = false
+	end
+end
+
+
+local workspace = game:GetService("Workspace")
+
+local function create()
+	stop()
+
+	if not prompt.Visible or not oldpos then
+		return
+	end
+	
+	prompt.CenterImage.Visible = true
+	
+	
+	
+
+
+	local cam = workspace.CurrentCamera
+	if not cam then return end
+
+	local part = Instance.new("Part")
+	part.Name = "PromptPosition"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	part.Transparency = 1
+	part.Size = Vector3.new(0.1, 0.1, 0.1)
+	part.Parent = workspace
+
+	local function getpos(p)
+		local abs = prompt.Parent.AbsolutePosition
+		local size = prompt.Parent.AbsoluteSize
+		local x = abs.X + size.X * p.X.Scale + p.X.Offset
+		local y = abs.Y + size.Y * p.Y.Scale + p.Y.Offset
+		local ray = cam:ViewportPointToRay(x, y)
+		return ray.Origin + ray.Direction * 10
+	end
+
+	part.Position = getpos(oldpos)
+
+	clone = prompt:Clone()
+	clone.Name = prompt.Name .. "_Clone"
+	clone.Position = oldpos
+	clone.Visible = true
+	clone.Parent = prompt.Parent
+
+	local img = clone:WaitForChild("CenterImage")
+	img.Size = UDim2.new(
+		img.Size.X.Scale * 1.25,
+		img.Size.X.Offset * 1.25,
+		img.Size.Y.Scale * 1.25,
+		img.Size.Y.Offset * 1.25
+	)
+	
+	local bar = prompt:FindFirstChild("Bar")
+	local barvis = bar and bar.Visible
+
+	if bar and barvis then
+		bar.Visible = false
+
+		task.delay(0.4, function()
+			if clone and clone.Parent then
+				local cb = clone:FindFirstChild("Bar")
+
+				if cb then
+					cb.Visible = false
+				end
+			end
+
+			if bar and bar.Parent then
+				bar.Visible = true
+			end
+		end)
+	end
+
+	hideimg(prompt)
+
+	con = run.RenderStepped:Connect(function(dt)
+		if not prompt.Visible or not clone or not clone.Parent or not part.Parent then
+			part:Destroy()
+			stop()
+			return
+		end
+
+		local a = 1 - math.exp(-10 * dt)
+		part.Position = part.Position:Lerp(getpos(prompt.Position), a)
+
+		local v, visible = cam:WorldToViewportPoint(part.Position)
+		if visible then
+	local parent = prompt.Parent
+	local ap = parent.AbsolutePosition
+	local target = UDim2.fromOffset(v.X - ap.X, v.Y - ap.Y)
+	local dx = target.X.Offset - clone.Position.X.Offset
+	local dy = target.Y.Offset - clone.Position.Y.Offset
+
+	if math.sqrt(dx * dx + dy * dy) > 10 then
+		clone.Position = clone.Position:Lerp(target, a)
+	end
+end
+	end)
+
+	clone.Destroying:Connect(function()
+		if part then part:Destroy() end
+	end)
+end
+
+
+prompt:GetPropertyChangedSignal("Visible"):Connect(function()
+	if prompt.Visible then
+		oldpos = pos
+
+		if oldpos then
+			create()
+		end
+
+		pos = prompt.Position
+	else
+		pos = prompt.Position
+		stop()
+	end
+end)
+
+if prompt.Visible then
+	pos = prompt.Position
+end
