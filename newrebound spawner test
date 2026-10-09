@@ -1000,6 +1000,8 @@ snd.Parent = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
                     end
                 end
             end
+            
+            local called = false
 
             local damage = config.Damage
 local hit = not model:GetAttribute("Paused")
@@ -1022,10 +1024,11 @@ if hit then
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
 			local rp = char and (char.PrimaryPart or char:FindFirstChild("HumanoidRootPart"))
 
-			if not hum or not rp or hum.Health <= 2 then
-				task.spawn(entity.RunCallback, entity, "OnDamagePlayer", hum and hum.Health or 0)
-				break
-			end
+			if not called and (not hum or not rp or hum.Health <= 2) then
+	called = true
+	task.spawn(entity.RunCallback, entity, "OnDamagePlayer", hum and hum.Health or 0)
+	break
+end
 
 			local org = model:GetPivot().Position
 			local pos = rp.Position
@@ -1059,7 +1062,7 @@ if hit then
 			end
 
 			task.spawn(ShowStatic)
-			hum.Health = math.max(0, hum.Health - 1)
+			hum.Health = math.max(0, hum.Health - 3)
 			task.wait(0.05)
 		end
 
