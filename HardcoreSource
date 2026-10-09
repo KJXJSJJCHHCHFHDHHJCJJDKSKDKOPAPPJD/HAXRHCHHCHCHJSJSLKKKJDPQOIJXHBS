@@ -1320,7 +1320,8 @@ task.spawn(function()
 			) then
 			
 			local captionTexts = {
-					"Who tf is joe?!?!",
+					"who tf is joe?!?!",
+					"who th is joe????", 
 					"thinknoodles used a script executor for his shears video. ban him now!!!",
 					"Good luck!",
 					"Also try AREA:001!", 
@@ -1338,7 +1339,9 @@ task.spawn(function()
 					"CEASE your movement. HALT your movement.", 
 					"it will cost 4353487543987543853485 knobs to open the next door", 
 					"pathfinding broke for over 2 years, to the hardcore lightstand. so hardcore", 
-					"@geodude what's up just curious totally wasn't pinging you for a krampus key 🥺 I wannar krampus\nkiwi hasn't released the haste script" 
+					"@geodude what's up just curious totally wasn't pinging you for a krampus key 🥺 I wannar krampus\nkiwi hasn't released the haste script", 
+					"RUN.", 
+					"Eat bricks and cook the microwave" 
 				}
 				local chosenCaption = captionTexts[math.random(#captionTexts)]
 
