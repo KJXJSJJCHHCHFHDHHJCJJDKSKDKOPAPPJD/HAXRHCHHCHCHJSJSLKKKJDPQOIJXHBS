@@ -1,19 +1,45 @@
-function light(tim,color0,color1)
+local CameraShaker = require(game.ReplicatedStorage.CameraShaker)
+local CameraShaker = require(game.ReplicatedStorage:WaitForChild("CameraShaker"))
+local camera = workspace.CurrentCamera
+
+local spawnShake = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+	camera.CFrame = camera.CFrame * shakeCf
+end)
+
+spawnShake:Start()
+
+spawnShake:ShakeOnce(
+	8,   -- Magnitude (mạnh)
+	2,   -- Roughness
+	0.05, -- FadeIn
+	3, -- FadeOut
+	0,    -- PositionInfluence
+	0.8   -- RotationInfluence
+)
+
+function light(tim, color0, color1)
 	local tweenservice = game:GetService("TweenService")
-	local info = TweenInfo.new(tim,Enum.EasingStyle.Linear)
-	for _ , light in pairs(game.Workspace.CurrentRooms:GetDescendants()) do
+	local info = TweenInfo.new(tim, Enum.EasingStyle.Linear)
+	local room = game.Workspace.CurrentRooms:FindFirstChild(tostring(game.ReplicatedStorage.GameData.LatestRoom.Value))
+
+	if not room then return end
+
+	for _, light in pairs(room:GetDescendants()) do
 		if light:IsA("Light") or light:IsA("SurfaceLight") or light:IsA("SpotLight") then
 			local target = {Color = color1}
-			local anim = tweenservice:Create(light,info,target)
+			local anim = tweenservice:Create(light, info, target)
 			anim:Play()
 		end
-		if light:IsA("MeshPart") and light.Material == Enum.Material.Neon  and light.Name ~= "Skybox" then
+
+		if light:IsA("MeshPart") and light.Material == Enum.Material.Neon and light.Name ~= "Skybox" then
 			local target1 = {Color = color0}
-			local anim2 = tweenservice:Create(light,info,target1)
+			local anim2 = tweenservice:Create(light, info, target1)
 			anim2:Play()
 		end
 	end
 end
+
+
 
 local speed
 
@@ -79,7 +105,7 @@ end
 
 local Reboundcolor = Instance.new("ColorCorrectionEffect",game.Lighting) game.Debris:AddItem(Reboundcolor,24)
 Reboundcolor.Name = "Bla"
-Reboundcolor.TintColor = Color3.fromRGB(65, 138, 255) Reboundcolor.Saturation = -0.7 Reboundcolor.Contrast = 0.2
+Reboundcolor.TintColor = Color3.fromRGB(143, 186, 255) Reboundcolor.Saturation = -0.7 Reboundcolor.Contrast = 0.2
 game.TweenService:Create(Reboundcolor,TweenInfo.new(15),{TintColor = Color3.fromRGB(255, 255, 255),Saturation = 0, Contrast = 0}):Play()
 local TweenService = game:GetService("TweenService")
 local TW = TweenService:Create(game.Lighting.MainColorCorrection, TweenInfo.new(5),{TintColor = Color3.fromRGB(255, 255, 255)})
@@ -122,7 +148,7 @@ camShake:Start()
 camShake:ShakeOnce(13,4,0.1,6,2,0.5)
 
 task.spawn(function() 
-light(2,Color3.fromRGB(127, 212, 255),Color3.fromRGB(0, 138, 255))
+light(0, Color3.fromRGB(0, 221, 255), Color3.fromRGB(0, 151, 171))
 end) 
 
 wait(3)
