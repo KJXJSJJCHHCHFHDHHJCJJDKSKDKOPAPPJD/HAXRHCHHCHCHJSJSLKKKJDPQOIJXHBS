@@ -169,7 +169,7 @@ local function SetupDoorNormal(obj)
 			TweenService:Create(
 				cloneDoor,
 				TweenInfo.new(
-					1,
+					2,
 					Enum.EasingStyle.Exponential,
 					Enum.EasingDirection.Out
 				),
@@ -187,7 +187,7 @@ local function SetupDoorNormal(obj)
 			local tween = TweenService:Create(
 				cloneDoor,
 				TweenInfo.new(
-					1,
+					2,
 					Enum.EasingStyle.Exponential,
 					Enum.EasingDirection.Out
 				),
