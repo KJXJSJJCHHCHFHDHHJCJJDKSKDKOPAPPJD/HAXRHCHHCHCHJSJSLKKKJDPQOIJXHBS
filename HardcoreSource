@@ -161,6 +161,10 @@ SafeLoadFileCached("https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOR
 end)
 
 task.spawn(function()
+SafeLoadFileCached("https://raw.githubusercontent.com/KJXJSJJCHHCHFHDHHJCJJDKSKDKOPAPPJD/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/MovingPrompt")
+end)
+
+task.spawn(function()
 SafeLoadFileCached("https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Light-Model-Changer")
 end)
 
