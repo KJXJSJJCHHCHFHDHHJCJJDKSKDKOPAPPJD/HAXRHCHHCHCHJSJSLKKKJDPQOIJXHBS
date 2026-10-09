@@ -1047,7 +1047,6 @@ and (charOrigin - origin).Magnitude <= damage.Range
 and inSight
 
 if hit then
-model:SetAttribute("Paused", true)
 
 task.spawn(function()  
 	while entity:IsAlive() do  
@@ -1099,10 +1098,6 @@ local org = model:GetPivot().Position
 	end  
 
 	snd:Stop()  
-
-	if entity:IsAlive() then  
-		model:SetAttribute("Paused", false)  
-	end  
 end)
 
 end
