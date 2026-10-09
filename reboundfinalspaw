@@ -1,5 +1,5 @@
 --[[     __      __          _            _       ______       _   _ _            _____                                       __      _____       \ \    / /         ()          ( )     |  |     | | () |          / |                                      \ \    / / \       \ \  / /   _ _ __  ___  ___   |/ ___  | |   _ __ | | | | _   _  | (  _ __   __ ___      ___ __   ___ _ __   \ \  / /   ) |       \ / / | | | ' | \ / / | | | / | |  | | ' | | | | | | |  _ | ' \ / ` \ \ /\ / / ' \ / _ \ '|   \ / /   / /         \  /| || | | | | |>  <| || | _ \ | || | | | || | || || |  ) | |) | (| |\ V  V /| | | |  _/ |       \  /   / /          /  _, || ||//_\,| |/ ||| ||_||_|_, | |___/| ./ _,| _/_/ || ||___||        /   |_|              / |                                                   / |        | |                                                                |/                                                   |/         || ]]--
-
+-- bka
 local function GetGitSound(url, name)
 	if not isfile(name .. ".mp3") then
 		writefile(name .. ".mp3", game:HttpGet(url))
@@ -1141,7 +1141,7 @@ end
                 local nodes = GetPathfindNodesAmbush(config)
 
                 for _, v in next, nodes do
-                    if not moveTo(v) then return false end
+                    if not moveTo(v, valid) then return false end
                 end
 
                 if config.Rebounding.Enabled then
@@ -1155,7 +1155,7 @@ end
                         task.spawn(entity.RunCallback, entity, "OnRebounding", true)
 
                         for j = #nodes, 1, -1 do
-                            if not moveTo(nodes[j]) then return false end
+                            if not moveTo(nodes[j], valid) then return false end
                         end
 
                         task.spawn(entity.RunCallback, entity, "OnRebounding", false)
@@ -1167,7 +1167,7 @@ end
                         nodes = GetPathfindNodesAmbush(config)
 
                         for _, v in next, nodes do
-                            if not moveTo(v) then return false end
+                            if not moveTo(v, valid) then return false end
                         end
 
                         task.spawn(entity.RunCallback, entity, "OnRebounding", false)
@@ -1182,7 +1182,7 @@ end
                 local nodes, _ = GetPathfindNodesBlitz(config)
 
                 for _, v in next, nodes do
-                    if not moveTo(v) then return false end
+                    if not moveTo(v, valid) then return false end
                 end
 
                 if config.Rebounding.Enabled then
@@ -1207,7 +1207,7 @@ end
                         task.spawn(entity.RunCallback, entity, "OnRebounding", true)
 
                         for i = #rn, idx, -1 do
-                            if not moveTo(rn[math.clamp(i, 1, #rn)]) then return false end
+                            if not moveTo(rn[math.clamp(i, 1, #rn)], valid) then return false end
                         end
 
                         task.wait(config.Rebounding.Delay)
@@ -1217,14 +1217,14 @@ end
                         task.spawn(entity.RunCallback, entity, "OnRebounding", false)
 
                         for i = idx, #rn do
-                            if not moveTo(rn[math.clamp(i, 1, #rn)]) then return false end
+                            if not moveTo(rn[math.clamp(i, 1, #rn)], valid) then return false end
                         end
                     end
                 end
 
                 local _, ending = GetPathfindNodesBlitz(config)
                 for _, v in next, ending do
-                    if not moveTo(v) then return false end
+                    if not moveTo(v, valid) then return false end
                 end
             end
 
@@ -1233,7 +1233,6 @@ end
         
         local delaylah = 1.3
 local total = 12
-local pathid = 0
 
 for i = 1, total do
     if not entity:IsAlive() then return end
