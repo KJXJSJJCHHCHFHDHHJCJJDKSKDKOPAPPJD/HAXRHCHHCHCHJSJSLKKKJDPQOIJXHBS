@@ -1,6 +1,6 @@
 
 --[[     __      __          _            _       ______       _   _ _            _____                                       __      _____       \ \    / /         ()          ( )     |  |     | | () |          / |                                      \ \    / / \       \ \  / /   _ _ __  ___  ___   |/ ___  | |   _ __ | | | | _   _  | (  _ __   __ ___      ___ __   ___ _ __   \ \  / /   ) |       \ / / | | | ' | \ / / | | | / | |  | | ' | | | | | | |  _ | ' \ / ` \ \ /\ / / ' \ / _ \ '|   \ / /   / /         \  /| || | | | | |>  <| || | _ \ | || | | | || | || || |  ) | |) | (| |\ V  V /| | | |  / |       \  /   / /          /  , || ||//,| |/ ||| |||||, | |/| ./ ,| // || ||||        /   ||              / |                                                   / |        | |                                                                |/                                                   |/         || ]]--
-
+-- ka
 local function GetGitSound(url, name)
 if not isfile(name .. ".mp3") then
 writefile(name .. ".mp3", game:HttpGet(url))
@@ -141,7 +141,7 @@ end
 end
 
 local CONST = {
-BASE_ENTITY_SPEED = 65,
+BASE_ENTITY_SPEED = 800,
 ATTR = {
 ENTITY = {
 Running = false,
@@ -1093,7 +1093,7 @@ local org = model:GetPivot().Position
 		end  
 
 		task.spawn(ShowStatic)  
-		hum.Health = math.max(0, hum.Health - 0.8)  
+		hum.Health = math.max(0, hum.Health - 0.3)  
 		task.wait(0.05)  
 	end  
 
@@ -1267,9 +1267,13 @@ end)
 task.wait(delaylah)  
 if not entity:IsAlive() then return end  
 
-pathid += 1  
-model:PivotTo(spawn.CFrame + Vector3.new(0, config.Entity.HeightOffset, 0))  
-delaylah /= 1.5
+pathid += 1
+config.Movement.Speed += 100
+model:PivotTo(spawn.CFrame + Vector3.new(0, config.Entity.HeightOffset, 0))
+
+
+
+delaylah = math.max(delaylah / 1.5, 0.2)
 
 end
 end)
