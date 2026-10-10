@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- hg
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -1078,17 +1078,15 @@ task.spawn(function()
 			end
 
 			local pivot = model:GetPivot()
-			local target = hrp.Position
-			local delta = target - pivot.Position
-			local dist = delta.Magnitude
+local target = hrp.Position
+local delta = target - pivot.Position
+local dist = delta.Magnitude
 
-			if dist > 0.05 then
-				local step = math.min(50 * dt, dist)
-				model:PivotTo(CFrame.lookAt(
-					pivot.Position + delta.Unit * step,
-					target
-				))
-			end
+if dist > 3 then
+	local step = math.min(50 * dt, dist - 2)
+	local pos = pivot.Position + delta.Unit * step
+	model:PivotTo(CFrame.lookAt(pos, target))
+end
 
 			if (hrp.Position - part.Position).Magnitude < 8 then
 				closeTime += dt
