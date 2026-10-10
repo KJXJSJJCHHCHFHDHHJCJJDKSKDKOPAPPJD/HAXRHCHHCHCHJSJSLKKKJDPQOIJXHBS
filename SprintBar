@@ -7,6 +7,30 @@ local MobileButtons = MainFrame:WaitForChild("MobileButtons")
 local HeartBar = MainFrame:WaitForChild("Healthbar")
 HeartBar.Position = UDim2.new(0, 10, 0.975000024, -20)
 local DisableSprintSystem = false
+local pla = game:GetService("Players")
+local cam = workspace.CurrentCamera
+local char = pla.LocalPlayer.Character
+local stopforce = false
+local eff = pla.LocalPlayer.PlayerGui.MainUI.MainFrame.Healthbar.Effects.SpeedBoost
+eff:GetPropertyChangedSignal("Visible"):Connect(function()
+	if eff.Visible then
+		eff.Visible = false
+	end
+end)
+
+eff.Visible = false
+
+local fov = cam.FieldOfView
+
+cam:GetPropertyChangedSignal("FieldOfView"):Connect(function()
+	if cam.FieldOfView ~= fov and not stopforce then
+		cam.FieldOfView = fov
+	end
+	
+	if stopforce then
+	cam.FieldOfView = 70
+	end
+end)
 
 local function LoadObject(file, url, parent)
 	if not isfile(file) then
@@ -154,6 +178,10 @@ local function ToggleSprint()
 		SetSprint(false)
 
 		ManualFade = true
+		
+		local fov = cam.FieldOfView
+
+stopforce = true
 
 		TweenService:Create(
 			SprintEffect,
@@ -168,14 +196,15 @@ local function ToggleSprint()
 		end)
 
 		if not Disabled then
-			Humanoid.WalkSpeed = BaseSpeed
+			char:SetAttribute("SpeedBoost", 0)
 		end
 	else
 		SetSprint(true)
+		stopforce = false
 		ManualFade = false
 
 		if not Disabled then
-			Humanoid.WalkSpeed = BaseSpeed + 5
+			char:SetAttribute("SpeedBoost", 4)
 		end
 	end
 end
@@ -201,11 +230,11 @@ task.spawn(function()
 		if Humanoid.Parent ~= Character then
 			Character = Player.Character or Player.CharacterAdded:Wait()
 			Humanoid = Character:WaitForChild("Humanoid")
-			BaseSpeed = Humanoid.WalkSpeed
+			char:SetAttribute("SpeedBoost", 0)
 		end
 
 		if Disabled then
-			Humanoid.WalkSpeed = BaseSpeed - 2
+			char:SetAttribute("SpeedBoost", 0)
 		end
 
 		task.wait()
@@ -265,7 +294,7 @@ task.wait(2)
 	):Play()
 	end)
 
-	Humanoid.WalkSpeed = BaseSpeed - 2
+	char:SetAttribute("SpeedBoost", 0)
 	require(game.Players.LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game).caption("You're exhausted.",true)
 
 	task.delay(0.7, function()
@@ -278,9 +307,9 @@ if Disabled and Stamina >= 95 then
 	TweenSprintBar(false)
 
 	if Sprinting then
-		Humanoid.WalkSpeed = BaseSpeed + 5
+		char:SetAttribute("SpeedBoost", 4)
 	else
-		Humanoid.WalkSpeed = BaseSpeed
+		char:SetAttribute("SpeedBoost", 0)
 	end
 end
 end)
@@ -293,12 +322,12 @@ Player.CharacterAdded:Connect(function(char)
 
 	if Sprinting then
 		if Disabled then
-			Humanoid.WalkSpeed = BaseSpeed - 2
+			char:SetAttribute("SpeedBoost", 0)
 		else
-			Humanoid.WalkSpeed = BaseSpeed + 5
+			char:SetAttribute("SpeedBoost", 4)
 		end
 	else
-		Humanoid.WalkSpeed = BaseSpeed
+		char:SetAttribute("SpeedBoost", 0)
 	end
 end)
 
