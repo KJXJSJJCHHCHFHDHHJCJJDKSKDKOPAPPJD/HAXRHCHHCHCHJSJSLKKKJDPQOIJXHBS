@@ -1093,7 +1093,7 @@ local org = model:GetPivot().Position
 		end  
 
 		task.spawn(ShowStatic)  
-		hum.Health = math.max(0, hum.Health - 0.3)  
+		hum.Health = math.max(0, hum.Health - 0.8)  
 		task.wait(0.05)  
 	end  
 
