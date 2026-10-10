@@ -2116,7 +2116,7 @@ CharmsNotify({
 	Title = "Someone Else's Turn",
 	Description = "It tried on every face you fear, grew bored of yours, and moved on.",
 	Reason = "",
-	Image = "rbxassetid://89042790342232",
+	Image = "rbxassetid://137217897206292",
 	Time = 7
 })
 end) 
