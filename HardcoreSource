@@ -1866,17 +1866,29 @@ end
 
 end)
 
-local SEEK_REPLACEMENT_ID = "https://github.com/cakmay227-svg/random/raw/refs/heads/main/YTDown.com_YouTube_Seek-Hard-Mode-Ost_Media_cAjv2KH_Vc0_001_1080p.mp3?raw=true"
+local function GetGitSound(GithubSnd, SoundName)
+			local url = GithubSnd
+			if not isfile(SoundName .. ".mp3") then
+				writefile(SoundName .. ".mp3", game:HttpGet(url))
+			end
+			local sound = Instance.new("Sound")
+			sound.SoundId = (getcustomasset or getsynasset)(SoundName .. ".mp3")
+			return sound
+		end
+		
+		local BLOPJ = GetGitSound("https://github.com/cakmay227-svg/random/raw/refs/heads/main/YTDown.com_YouTube_Seek-Hard-Mode-Ost_Media_cAjv2KH_Vc0_001_1080p.mp3?raw=true?raw=true", "kvkkdjdjcjjj")
+
+
 
 local function setupSound(sound)
 if not sound:IsA("Sound") then return end
 
 if sound.Name == "SeekMusic" then  
-    sound.SoundId = SEEK_REPLACEMENT_ID  
+    sound.SoundId = BLOPJ.SoundId  
     sound.Volume = 2.2  
     sound:GetPropertyChangedSignal("SoundId"):Connect(function()  
-        if sound.SoundId ~= SEEK_REPLACEMENT_ID then  
-            sound.SoundId = SEEK_REPLACEMENT_ID  
+        if sound.SoundId ~= BLOPJ.SoundId then  
+            sound.SoundId = BLOPJ.SoundId  
         end  
     end)  
 end
