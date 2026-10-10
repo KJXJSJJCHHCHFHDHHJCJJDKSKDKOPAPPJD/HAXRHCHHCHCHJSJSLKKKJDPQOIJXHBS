@@ -320,6 +320,8 @@ end)
 entity:SetCallback("OnDamagePlayer", function(newHealth: number)
 	if newHealth <= 2 then
 		print("Entity has killed the player")
+if getgenv().Blop then return end
+getgenv().Blop = true
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/ReboundJumpscare"))() 
 	else
 
