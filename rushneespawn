@@ -12,7 +12,7 @@
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
--- n
+
 -- \\ Services // --
 
 local CollectionService = game:GetService("CollectionService")
@@ -1090,7 +1090,7 @@ task.spawn(function()
 			break
 		end
 
-		local targetPos = hrp.Position + hrp.CFrame.LookVector * 4
+		local targetPos = hrp.Position + hrp.CFrame.LookVector * 5
 		local pivot = model:GetPivot()
 		local delta = targetPos - pivot.Position
 
@@ -1121,7 +1121,7 @@ task.spawn(function()
 	if reached then
 		local elapsed = 0
 
-		while entity:IsAlive() and elapsed < 2 do
+		while entity:IsAlive() and elapsed < 3 do
 			local dt = RunService.Heartbeat:Wait()
 			char = LocalPlayer.Character
 
