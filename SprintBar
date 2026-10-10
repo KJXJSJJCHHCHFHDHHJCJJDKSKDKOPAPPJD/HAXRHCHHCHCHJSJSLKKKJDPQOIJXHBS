@@ -448,7 +448,7 @@ end
 	Label.Text = Label.Text:gsub("%d+%.?%d*", tostring(Display), 1)
 end
 
-		Humanoid.WalkSpeed = BaseSpeed + Total
+		char:SetAttribute("SpeedBoost", 0 + Total)
 end
 
 	local ActiveEntity = nil
@@ -457,6 +457,14 @@ local EntityConfigs = {
 	{
 		Name = "ripper",
 		Part = "Ripe"
+	},
+	{
+		Name = "ceasebla",
+		Part = "HSUR"
+	},
+	{
+		Name = "frostyma5n",
+		Part = nil
 	},
 	{
 		Name = "rebound",
@@ -561,7 +569,7 @@ end
 end)
 
 Humanoid.HealthChanged:Connect(function()
-	UpdateBonus()
+	UpdateBonus ()
 end)
 
 UpdateBonus()
