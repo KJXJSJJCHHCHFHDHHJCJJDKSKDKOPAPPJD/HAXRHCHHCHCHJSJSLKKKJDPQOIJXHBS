@@ -12,7 +12,7 @@
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
-
+-- n
 -- \\ Services // --
 
 local CollectionService = game:GetService("CollectionService")
@@ -1069,8 +1069,83 @@ task.spawn(function()
 			end
 
 			if char:GetAttribute("Hiding") == true then
+	SetChaseSounds(model, false)
+
+	local hidden = true
+	local reached = false
+
+	while entity:IsAlive() and hidden and not reached do
+		local dt = RunService.Heartbeat:Wait()
+		char = LocalPlayer.Character
+		hum = char and char:FindFirstChildOfClass("Humanoid")
+		hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+		if not char or not hum or hum.Health <= 0 or not hrp then
+			hidden = false
+			break
+		end
+
+		if char:GetAttribute("Hiding") ~= true then
+			hidden = false
+			break
+		end
+
+		local targetPos = hrp.Position + hrp.CFrame.LookVector * 4
+		local pivot = model:GetPivot()
+		local delta = targetPos - pivot.Position
+
+		if delta.Magnitude <= 0.15 then
+			model:PivotTo(CFrame.lookAt(
+				targetPos,
+				targetPos + hrp.CFrame.LookVector
+			))
+			reached = true
+		else
+			local pos = pivot.Position + delta.Unit * math.min(35 * dt, delta.Magnitude)
+			model:PivotTo(CFrame.lookAt(
+				pos,
+				pos + hrp.CFrame.LookVector
+			))
+		end
+	end
+
+	if not entity:IsAlive() then
+		break
+	end
+
+	if not hidden then
+		SetChaseSounds(model, true)
+		continue
+	end
+
+	if reached then
+		local elapsed = 0
+
+		while entity:IsAlive() and elapsed < 2 do
+			local dt = RunService.Heartbeat:Wait()
+			char = LocalPlayer.Character
+
+			if not char or char:GetAttribute("Hiding") ~= true then
+				hidden = false
 				break
 			end
+
+			elapsed += dt
+		end
+	end
+
+	if not entity:IsAlive() then
+		break
+	end
+
+	if not hidden then
+		SetChaseSounds(model, true)
+		continue
+	end
+
+	state.chasing = false
+	break
+end
 
 			local part = model:FindFirstChildWhichIsA("BasePart", true)
 			if not part then
