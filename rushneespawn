@@ -9,7 +9,7 @@
             |___/                                                   |___/         |_|
 ]]--
 
-if getgenv().RushSpawnner then return getgenv().RushSpawnner end
+if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 
@@ -1387,7 +1387,7 @@ while entity:IsAlive() and state.chasing do
 	task.wait(0.1)
 end
 
-if entity:IsAlive() and not model:GetAttribute("Despawning") then
+if entity:IsAlive() and not state.hit and not model:GetAttribute("Despawning") then
 	model:SetAttribute("Despawning", true)
 	task.spawn(entity.RunCallback, entity, "OnDespawning")
 	EntityMoveTo(model, model:GetPivot() - Vector3.new(0, 300, 0), config.Movement.Speed)
@@ -1441,5 +1441,5 @@ Module.Unload = function(self)
     end
 end
 
-getgenv().RushSpawnner = Module
+getgenv().RushSPawner = Module
 return Module
