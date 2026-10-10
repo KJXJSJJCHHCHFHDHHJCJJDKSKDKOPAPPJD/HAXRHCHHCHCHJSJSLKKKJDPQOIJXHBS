@@ -9,7 +9,7 @@
             |___/                                                   |___/         |_|
 ]]--
 
-if getgenv().RushSpawnrr then return getgenv().RushSpawnrr end
+if getgenv().RushSpawnner then return getgenv().RushSpawnner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 
@@ -737,19 +737,16 @@ local function GetSound(model, name)
 end
 
 local function SetChaseSounds(model, chase)
-	local play = GetSound(model, "PlaySound")
-	local steps = GetSound(model, "Footsteps")
-
-	if play then
-		play.Playing = chase
-	end
-
-	if steps then
-		steps.Playing = not chase
+	for _, v in next, model:GetDescendants() do
+		if v:IsA("Sound") then
+			if v.Name == "PlaySound" then
+				v.Playing = not chase
+			elseif v.Name == "Footsteps" then
+				v.Playing = chase
+			end
+		end
 	end
 end
-
-
 
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
@@ -1086,7 +1083,7 @@ task.spawn(function()
 			local dist = delta.Magnitude
 
 			if dist > 0.05 then
-				local step = math.min(20 * dt, dist)
+				local step = math.min(50 * dt, dist)
 				model:PivotTo(CFrame.lookAt(
 					pivot.Position + delta.Unit * step,
 					target
@@ -1096,15 +1093,25 @@ task.spawn(function()
 			if (hrp.Position - part.Position).Magnitude < 8 then
 				closeTime += dt
 
-				if closeTime >= 3 and not state.hit then
-					state.hit = true
-					DamagePlayer(entity)
-					break
-				end
+		if closeTime >= 3 and not state.hit then
+	state.hit = true
+	DamagePlayer(entity)
+	state.chasing = false
+	state.returning = false
+	SetChaseSounds(model, false)
+	break
+end
 			else
 				closeTime = 0
 			end
 		end
+		
+		if state.hit then
+	while entity:IsAlive() do
+		task.wait(0.1)
+	end
+	return
+end
 
 		if entity:IsAlive() and not state.hit then
 			state.returning = true
@@ -1376,12 +1383,16 @@ end)
         end
 
         -- Despawning
-        if not model:GetAttribute("Despawning") then
-            model:SetAttribute("Despawning", true)
-            task.spawn(entity.RunCallback, entity, "OnDespawning")
-            EntityMoveTo(model, model:GetPivot() - Vector3.new(0, 300, 0), config.Movement.Speed)
-            entity:Despawn()
-        end
+while entity:IsAlive() and state.chasing do
+	task.wait(0.1)
+end
+
+if entity:IsAlive() and not model:GetAttribute("Despawning") then
+	model:SetAttribute("Despawning", true)
+	task.spawn(entity.RunCallback, entity, "OnDespawning")
+	EntityMoveTo(model, model:GetPivot() - Vector3.new(0, 300, 0), config.Movement.Speed)
+	entity:Despawn()
+end
     end)
 end
 
@@ -1430,5 +1441,5 @@ Module.Unload = function(self)
     end
 end
 
-getgenv().RushSpawnrr = Module
+getgenv().RushSpawnner = Module
 return Module
