@@ -876,7 +876,7 @@ end
 		end
 
 		if playerChained and hum then
-	hum.Health = math.max(0, hum.Health - 0)
+	hum.Health = math.max(0, hum.Health - 60)
 
 	for _, v in ipairs(entity:GetDescendants()) do
 		if v:IsA("Sound") and v.Name == "VictimScream" then
