@@ -1,0 +1,298 @@
+---====== Load spawner ======---
+
+local Spawner = loadstring(game:HttpGet("https://raw.githubusercontent.com/KJXJSJJCHHCHFHDHHJCJJDKSKDKOPAPPJD/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/rushneespawn"))()
+
+---====== Create entity ======---
+
+local entity = Spawner:Create({
+	Entity = {
+		Name = "RushMoving",
+		Asset = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_6839171747_Model_RushBlab_1791605219.txt",
+		HeightOffset = 0
+	},
+	Lights = {
+		Flicker = {
+			Enabled = false,
+			Duration = 4
+		},
+		Shatter = false,
+		Repair = false
+	},
+	Earthquake = {
+		Enabled = false
+	},
+	CameraShake = {
+		Enabled = false,
+		Range = 150,
+		Values = {5, 10, 7, 0.1} -- Magnitude, Roughness, FadeIn, FadeOut
+	},
+	Movement = {
+		Speed = 50,
+		Delay = 0,
+		Reversed = false
+	},
+	Rebounding = {
+		Enabled = false,
+		Type = "Ambush", -- "Blitz"
+		Min = 1,
+		Max = 1,
+		Delay = 2
+	},
+	Damage = {
+		Enabled = false,
+		Range = 40,
+		Amount = 0.01
+	},
+	Crucifixion = {
+		Enabled = false,
+		Range = 40,
+		Resist = false,
+		Break = true
+	},
+	Death = {
+		Type = "Guiding", -- "Curious"
+		Hints = {"Death", "Hints", "Go", "Here"},
+		Cause = "Rush"
+	}
+})
+
+---====== Debug entity ======---
+
+entity:SetCallback("OnSpawned", function()
+	print("Entity has spawned")
+
+	task.spawn(function()
+		local pla = game:GetService("Players")
+		local rs = game:GetService("ReplicatedStorage")
+		local rooms = workspace:WaitForChild("CurrentRooms")
+		local ev = require(rs.ModulesClient.Module_Events)
+		local lpla = pla.LocalPlayer
+
+		local model = entity.Model
+
+
+		local part = model and model:FindFirstChildWhichIsA("BasePart")
+		local char = lpla.Character or lpla.CharacterAdded:Wait()
+		local hrp = char:WaitForChild("HumanoidRootPart")
+
+		if not part then return end
+
+		local active = false
+
+		while entity.Model and entity.Model.Parent do
+			char = lpla.Character
+			hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+			if hrp and part.Parent then
+				local dist = (part.Position - hrp.Position).Magnitude
+
+				if dist < 110 then
+					if not active then
+						active = true
+
+						task.spawn(function()
+							while active and entity.Model and entity.Model.Parent do
+								char = lpla.Character
+								hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+								if not hrp or not part.Parent or (part.Position - hrp.Position).Magnitude > 130 then
+									active = false
+									break
+								end
+
+								local room = rooms:FindFirstChild(tostring(rs.GameData.LatestRoom.Value))
+
+								if room and room:IsA("Model") then
+									ev.flicker(room, 1)
+								end
+
+								task.wait(1)
+							end
+						end)
+					end
+				else
+					active = false
+				end
+			end
+
+			task.wait(0.1)
+		end
+
+		active = false
+	end)
+end)
+
+entity:SetCallback("OnStartMoving", function()
+    print("Entity has started moving")
+end)
+
+entity:SetCallback("OnEnterRoom", function(room: Model, firstTime: boolean)
+    if firstTime then
+        print("Entity has entered room: "..room.Name.." for the first time")
+    else
+        print("Entity has entered room: "..room.Name.." again")
+    end
+end)
+
+entity:SetCallback("OnLookAt", function(lineOfSight: boolean)
+	if lineOfSight == true then
+		print("Player is looking at entity")
+	else
+		print("Player view is obstructed by something")
+	end
+end)
+
+entity:SetCallback("OnRebounding", function(startOfRebound: boolean)
+    if startOfRebound == true then
+        print("Entity has started rebounding")
+	else
+        print("Entity has finished rebounding")
+	end
+end)
+
+entity:SetCallback("OnDespawning", function()
+    print("Entity is despawning")
+end)
+
+entity:SetCallback("OnDespawned", function()
+    print("Entity has despawned") 
+end)
+
+entity:SetCallback("OnDamagePlayer", function(newHealth: number)
+	if newHealth <= 0 then
+		print("Entity has killed the player")
+	else
+		print("Entity has damaged the player")
+		entity.Model:Destroy()
+		local pla = game:GetService("Players")
+local run = game:GetService("RunService")
+
+local lpla = pla.LocalPlayer
+local char = lpla.Character or lpla.CharacterAdded:Wait()
+
+local url = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_131351567799504_Frame_Jumpscare_RushRJseig_1791615945.txt"
+local path = "RushReigsju.txt"
+
+if not isfile(path) then
+	writefile(path, game:HttpGet(url))
+end
+
+local jum = game:GetObjects(getcustomasset(path))[1]
+
+jum.Parent = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Jumpscare
+
+
+local gui = lpla.PlayerGui:WaitForChild("MainUI")
+local js = gui:WaitForChild("Jumpscare"):WaitForChild("Jumpscare_RushReig")
+
+local img = js:WaitForChild("ImageLabel")
+local big = js:WaitForChild("ImageLabelBig")
+
+js.Visible = true
+img.Visible = false
+big.Visible = false
+js.BackgroundColor3 = Color3.new(0, 0, 0)
+
+local start = tick()
+local n2 = math.random(5, 30) / 10
+local n3 = n2 + math.random(10, 60) / 10
+local size = 0.25
+
+for _, v in ipairs(img:GetChildren()) do
+	if v:IsA("GuiObject") then
+		task.spawn(function()
+			while js.Visible and v.Parent do
+				task.wait(math.random(2, 4) / 100)
+
+				v.Rotation = math.random(-8, 8) / 10
+				v.ZIndex = math.random(50, 56)
+
+				if v:IsA("ImageLabel") or v:IsA("ImageButton") then
+					v.ImageTransparency = math.random(2, 3) / 10
+				end
+
+				v.Position = UDim2.new(
+					0.5, math.random(-8, 8),
+					0.5, math.random(-8, 8)
+				)
+			end
+		end)
+	end
+end
+
+while tick() < start + n3 do
+	task.wait()
+
+	if tick() >= start + n2 then
+		img.Visible = true
+		n2 += math.random(7, 44) / 10
+		js.BackgroundColor3 = Color3.new(0, 0, math.random(0, 10) / 255)
+
+		img.Position = UDim2.new(
+			0.5, math.random(-2, 2),
+			0.5, math.random(-2, 2)
+		)
+
+		size += 0.05
+		img.Size = UDim2.new(size, 0, size, 0)
+	end
+end
+
+img.Visible = false
+big.Visible = true
+
+game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.RemoteListener.Jumpscares.Rush.Jumpscare_Rush2.PlaybackSpeed = 0.9
+game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.RemoteListener.Jumpscares.Rush.Jumpscare_Rush2:Play() 
+
+big:TweenSize(
+	UDim2.new(2.5, 0, 2.5, 0),
+	"In",
+	"Sine",
+	0.3,
+	true
+)
+
+local start2 = tick()
+
+repeat
+	local n = math.random(0, 10) / 10
+	local b = math.random(25, 50) / 50
+
+	js.BackgroundColor3 = Color3.new(n, n, math.clamp(b, n, 1))
+
+	big.Position = UDim2.new(
+		0.5 + math.random(-100, 100) / 5000, 0,
+		0.5 + math.random(-100, 100) / 3000, 0
+	)
+
+	task.wait(1 / 60)
+until tick() >= start2 + 0.3
+
+big.Visible = false
+js.BackgroundColor3 = Color3.new(0, 0, 0)
+
+local pla = game:GetService("Players")
+local char = pla.LocalPlayer.Character or pla.LocalPlayer.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+
+hum.Health = math.max(0, hum.Health - 125)
+
+task.wait(1)
+js.Visible = false
+	end
+end)
+
+--[[
+
+DEVELOPER NOTE:
+By overwriting 'CrucifixionOverwrite' the default crucifixion callback will be replaced with your custom callback.
+
+entity:SetCallback("CrucifixionOverwrite", function()
+    print("Custom crucifixion callback")
+end)
+
+]]--
+
+---====== Run entity ======---
+
+entity:Run(true)
