@@ -1,5 +1,30 @@
 local testmode = false -- Bật/tắt chế độ test (true: bỏ qua điều kiện, false: giữ nguyên điều kiện cũ)
 
+local function GetGitSound(GithubSnd, SoundName)
+			local url = GithubSnd
+			if not isfile(SoundName .. ".mp3") then
+				writefile(SoundName .. ".mp3", game:HttpGet(url))
+			end
+			local sound = Instance.new("Sound")
+			sound.SoundId = (getcustomasset or getsynasset)(SoundName .. ".mp3")
+			return sound
+		end
+		
+		local gitSoundTemp2 = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/XRecorder_20261010_02.mp3?raw=true", "cpoxjdjcjcjfjj")
+
+local blaSound = Instance.new("Sound") 
+		blaSound.SoundId = gitSoundTemp2.SoundId
+		blaSound.PlaybackSpeed = 1
+		blaSound.Looped = false
+		blaSound.TimePosition = 0
+		blaSound.Volume = 2
+		blaSound.Parent = workspace 
+		blaSound.RollOffMaxDistance = 1000000000
+		
+		blaSound.Ended:Connect(function()
+		blaSound:Destroy() 
+		end) 
+
 local function GetRoom()
 	local currentRooms = workspace:FindFirstChild("CurrentRooms")
 	if not currentRooms then return nil end
@@ -118,8 +143,9 @@ task.wait(0.2)
 
 local light = Instance.new("PointLight")
 light.Color = Color3.fromRGB(255,148,148)
-light.Range = 0
-light.Brightness = 1
+light.Range = 100
+light.Enabled = false
+light.Brightness = 4
 
 local lightPart = entity
 
@@ -134,7 +160,7 @@ if lightPart then
 end
 
 local spawnTweenInfo = TweenInfo.new(
-	1.5,
+	1,
 	Enum.EasingStyle.Quint,
 	Enum.EasingDirection.Out
 )
@@ -207,12 +233,6 @@ local darkColor = Color3.fromHSV(
 	end
 end)
 
-TweenService:Create(
-	light,
-	spawnTweenInfo,
-	{Range = 15}
-):Play()
-
 -- Tìm kiếm entity "Singu" bên trong asset
 
 local room = GetRoom()
@@ -282,11 +302,17 @@ end
 
 -- Hàm phát âm thanh an toàn trong Asset/Model s
 local function playSound(soundName)
-	local sound = s:FindFirstChild(soundName, true)
-	if sound and sound:IsA("Sound") then
-		sound:Play()
+		local sound = s:FindFirstChild(soundName, true)
+		if sound and sound:IsA("Sound") then
+		if sound.Name == "Chained" then
+		local clone = sound:Clone() 
+		clone.Parent = sound.Parent
+			clone:Play()
+			else
+			sound:Play() 
+		end
+		end
 	end
-end
 
 playSound("Scare")
 playSound("caught")
@@ -414,7 +440,14 @@ task.spawn(function()
 	end
 end)
 
-task.wait(1)
+task.wait(1.4) 
+
+
+for _, v in ipairs(s:GetDescendants()) do
+	if v:IsA("Sound") then
+		v:Stop()
+	end
+end
 
 if hum and hrp then
 	local entityPos = entity:IsA("Model") and entity:GetPivot().Position or entity.Position
@@ -429,7 +462,7 @@ if hum and hrp then
 	-- 1. KIỂM TRA NẾU PLAYER Ở TRONG BÁN KÍNH 25 STUDS -> TÍNH LÀ 1 MỤC TIÊU
 	local playerDistance = (hrp.Position - entityPos).Magnitude
 
-if playerDistance <= 25 and math.random() <= 0.5 then
+if playerDistance <= 50 and math.random() <= 0.3 then
 	table.insert(targets, {
 		instance = hrp,
 		distance = playerDistance,
@@ -443,34 +476,92 @@ end
 	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	overlapParams.FilterDescendantsInstances = {s, char} -- Loại trừ quái và người chơi
 
-	local nearbyParts = workspace:GetPartBoundsInRadius(entityPos, 100, overlapParams)
+	local nearbyParts = workspace:GetPartBoundsInRadius(entityPos, 200, overlapParams)
+
+local blacklist = {
+	Drawer = true,
+	Dresser = true,
+	Rafter = true,
+	LightStand = true,
+	Chandelier = true,
+	KeyObtain = true,
+	Wardrobe = true,
+	Crucifix = true, 
+	Lighter = true, 
+	Lockpick = true, 
+	Flashlight = true, 
+	Skeleton_Key = true, 
+	BlockedDoorModel = true, 
+	Door = true,
+	DoorNormal = true,
+	Table = true,
+	Table_Cloth = true, 
+	End_DoorFrame = true, 
+	Start_DoorFrame = true, 
+	DropCeiling = true, 
+	Bed = true, 
+	Double_Bed = true, 
+	Curtain = true, 
+	Sideroom29 = true, 
+	Sideroom28 = true, 
+	Sideroom30 = true, 
+	Sideroom27 = true, 
+	Sideroom31 = true, 
+	Window = true, 
+	Window_Tall = true, 
+	Rug = true
+}
 
 for _, part in ipairs(nearbyParts) do
-	if not part:IsDescendantOf(room) then
+	local assets = room:FindFirstChild("Assets")
+if not assets or not part:IsDescendantOf(assets) then
+	continue
+end
+
+	local model = part:FindFirstAncestorOfClass("Model")
+	local blocked = false
+local cur = model
+
+while cur and cur ~= room do
+	if blacklist[cur.Name] then
+		blocked = true
+		break
+	end
+	cur = cur.Parent
+end
+
+if blocked then
+	continue
+end
+
+	if not model or model == s or model == char
+		or model == selectedWardrobe
+		or processedModels[model] then
 		continue
 	end
 
-	local nameLower = string.lower(part.Name)
-
-	if nameLower:find("floor")
-	or nameLower:find("wall")
-	or nameLower:find("keyhitbox")
-	or nameLower:find("door")
-	or part.Locked then
+	if not model:IsDescendantOf(room) then
 		continue
 	end
 
-	if not processedParts[part] then
-		processedParts[part] = true
+	if blacklist[model.Name] then
+	continue
+end
 
-		local dist = (part.Position - entityPos).Magnitude
+local name = model.Name:lower()
+if name:find("floor") or name:find("wall") then
+	continue
+end
 
-		table.insert(targets,{
-			instance = part,
-			distance = dist,
-			isPlayer = false
-		})
-	end
+	local pos = model:GetPivot().Position
+	processedModels[model] = true
+
+	table.insert(targets, {
+		instance = model,
+		distance = (pos - entityPos).Magnitude,
+		isPlayer = false,
+		isModel = true
+	})
 end
 
 	-- Sắp xếp mục tiêu theo khoảng cách gần nhất
@@ -478,9 +569,9 @@ end
 		return a.distance < b.distance
 	end)
 
-	local maxPull = math.min(#targets, math.random(7,12))
+	local maxPull = math.min(#targets, math.random(15,20))
 
-local totalPullWindow = 0.8
+local totalPullWindow = 0
 
 local pullDelay = maxPull > 1
 	and totalPullWindow / (maxPull - 1)
@@ -503,24 +594,45 @@ local pullDelay = maxPull > 1
 	local createdBeams = {}
 	local createdAttachments = {}
 	local playerChained = false
+	local playerTarget
+	local chainTasks = {}
+	
+	task.spawn(function()
+	local start = tick()
 
-	-- 3. BẮN XÍCH MỖI 0.5 GIÂY (TỐI ĐA 6 MỤC TIÊU)
+	while tick() - start < 0.3 and light and light.Parent do
+		light.Enabled = true
+		task.wait(0.1)
+
+		light.Enabled = false
+		task.wait(0.1)
+	end
+
+	if light and light.Parent then
+		light.Enabled = false
+	end
+end)
+
 	for i = 1, maxPull do
 		local target = targets[i]
 
-		local targetPart = nil
 		if target.isPlayer then
-	playerChained = true
-	targetPart = target.instance
-	targetPart.Anchored = true
-else
-	targetPart = target.instance
-	table.insert(instancesToDestroy, target.instance)
+			playerTarget = target
+			continue
+		end
+
+		local targetPart = target.instance
+local targetAttPart = targetPart:IsA("Model")
+	and (targetPart.PrimaryPart or targetPart:FindFirstChildWhichIsA("BasePart", true))
+	or targetPart
+
+if not targetAttPart then
+	continue
 end
 
+table.insert(instancesToDestroy, targetPart)
+
 		if targetPart and #templateChains > 0 then
-			-- Tạo Attachment trên mục tiêu
-			
 			local template = templateChains[((i - 1) % #templateChains) + 1]
 			local originAtt = template.origin:IsA("Attachment") and template.origin or template.origin:FindFirstChildWhichIsA("Attachment")
 
@@ -530,33 +642,29 @@ end
 				originAtt.Parent = template.origin
 				table.insert(createdAttachments, originAtt)
 			end
-			
+
 			local targetAtt = Instance.new("Attachment")
-targetAtt.Name = "SingularityChainTargetAtt"
-targetAtt.Parent = targetPart
-targetAtt.Position = Vector3.zero
+			targetAtt.Name = "SingularityChainTargetAtt"
+			targetAtt.Position = Vector3.zero
+			targetAtt.Parent = targetAttPart
+			table.insert(createdAttachments, targetAtt)
 
-table.insert(createdAttachments, targetAtt)
+			local fakePart = Instance.new("Part")
+			fakePart.Name = "ChainTween"
+			fakePart.Size = Vector3.new(0.1, 0.1, 0.1)
+			fakePart.Transparency = 1
+			fakePart.CanCollide = false
+			fakePart.CanQuery = false
+			fakePart.CanTouch = false
+			fakePart.Anchored = true
+			fakePart.CFrame = originAtt.WorldCFrame
+			fakePart.Parent = workspace
+			table.insert(instancesToDestroy, fakePart)
 
-local fakePart = Instance.new("Part")
-fakePart.Name = "ChainTween"
-fakePart.Size = Vector3.new(0.1,0.1,0.1)
-fakePart.Transparency = 1
-fakePart.CanCollide = false
-fakePart.CanQuery = false
-fakePart.CanTouch = false
-fakePart.Anchored = true
-fakePart.CFrame = originAtt.WorldCFrame
-fakePart.Parent = workspace
-table.insert(instancesToDestroy, fakePart)
+			local fakeAtt = Instance.new("Attachment")
+			fakeAtt.Parent = fakePart
+			table.insert(createdAttachments, fakeAtt)
 
-local fakeAtt = Instance.new("Attachment")
-fakeAtt.Parent = fakePart
-table.insert(createdAttachments, fakeAtt)
-
-			-- Chọn gốc xích xoay vòng
-
-			-- Nhân bản Beam nếu vượt quá 2 cái
 			local beamToUse
 			if i <= #templateChains then
 				beamToUse = template.beam
@@ -566,58 +674,136 @@ table.insert(createdAttachments, fakeAtt)
 				table.insert(createdBeams, beamToUse)
 			end
 
-			-- Kích hoạt Beam nối 2 điểm
 			beamToUse.Attachment0 = originAtt
 			beamToUse.Attachment1 = fakeAtt
 			beamToUse.Enabled = true
-			
-			local chainTime = math.clamp(target.distance / 30, 0.3, 0.8)
 
-local chainTween = TweenService:Create(
-	fakePart,
-	TweenInfo.new(chainTime, Enum.EasingStyle.Linear),
-	{CFrame = targetAtt.WorldCFrame}
-)
+			local chainTime = math.clamp(target.distance / 10000, 0.001, 0.01)
+			local chainTween = TweenService:Create(
+				fakePart,
+				TweenInfo.new(chainTime, Enum.EasingStyle.Linear),
+				{CFrame = targetAtt.WorldCFrame}
+			)
 
-chainTween:Play()
+			table.insert(chainTasks, task.spawn(function()
+				chainTween:Play()
+				chainTween.Completed:Wait()
 
-task.spawn(function()
-	chainTween.Completed:Wait()
+				if beamToUse.Parent and targetAtt.Parent then
+					beamToUse.Attachment1 = targetAtt
+					playSound("Chained")
+				end
 
-	if beamToUse.Parent then
-		beamToUse.Attachment1 = targetAtt
-		playSound("Chained")
+				if fakePart.Parent then
+					fakePart:Destroy()
+				end
+			end))
+		end
+	end
 
-		spawnShake:ShakeOnce(
-			3,
-			5,
+	for _, thread in ipairs(chainTasks) do
+		task.wait()
+	end
+
+	while true do
+		local done = true
+
+		for _, thread in ipairs(chainTasks) do
+			if coroutine.status(thread) ~= "dead" then
+				done = false
+				break
+			end
+		end
+
+		if done then
+			break
+		end
+
+		task.wait()
+	end
+
+	if playerTarget and #templateChains > 0 then
+		task.wait(1)
+
+		local targetPart = playerTarget.instance
+		if targetPart and targetPart.Parent then
+			playerChained = true
+			targetPart.Anchored = true
+
+			local template = templateChains[1]
+			local originAtt = template.origin:IsA("Attachment") and template.origin or template.origin:FindFirstChildWhichIsA("Attachment")
+
+			if originAtt then
+				local targetAtt = Instance.new("Attachment")
+				targetAtt.Name = "SingularityChainTargetAtt"
+				targetAtt.Parent = targetPart
+				targetAtt.Position = Vector3.zero
+				table.insert(createdAttachments, targetAtt)
+
+				local fakePart = Instance.new("Part")
+				fakePart.Name = "ChainTween"
+				fakePart.Size = Vector3.new(0.1, 0.1, 0.1)
+				fakePart.Transparency = 1
+				fakePart.Anchored = true
+				fakePart.CanCollide = false
+				fakePart.CanQuery = false
+				fakePart.CanTouch = false
+				fakePart.CFrame = originAtt.WorldCFrame
+				fakePart.Parent = workspace
+				table.insert(instancesToDestroy, fakePart)
+
+				local fakeAtt = Instance.new("Attachment")
+				fakeAtt.Parent = fakePart
+				table.insert(createdAttachments, fakeAtt)
+
+				local beam = template.beam:Clone()
+				beam.Parent = template.origin
+				beam.Attachment0 = originAtt
+				beam.Attachment1 = fakeAtt
+				beam.Enabled = true
+				table.insert(createdBeams, beam)
+
+				local tween = TweenService:Create(
+					fakePart,
+					TweenInfo.new(
+						math.clamp(playerTarget.distance / 10000, 0.001, 0.01),
+						Enum.EasingStyle.Linear
+					),
+					{CFrame = targetAtt.WorldCFrame}
+				)
+				
+				spawnShake:ShakeOnce(
+			6,
+			2,
 			0.02,
-			0.18,
+			0.5,
 			0,
 			0.25
 		)
 
-		if fakePart.Parent then
-			fakePart:Destroy()
+				tween:Play()
+				tween.Completed:Wait()
+
+				if beam.Parent and targetAtt.Parent then
+					beam.Attachment1 = targetAtt
+					playSound("Chained")
+				end
+
+				if fakePart.Parent then
+					fakePart:Destroy()
+				end
+			end
 		end
 	end
 
-	if i == maxPull then
-		lastPullFinished:Fire()
-	end
-end)
+task.wait(0.4)
 
-			end
-
-		if i < maxPull then
-	task.wait(pullDelay)
-end
-end
-
-lastPullFinished.Event:Wait()
-lastPullFinished:Destroy()
-
-task.wait(0.8)
+local pulling = Instance.new("Sound") 
+pulling.Volume = 5
+pulling.SoundId = "rbxassetid://9117951132" 
+pulling.Parent = workspace 
+pulling.RollOffMaxDistance = 10000000
+pulling:Play()
 
 local rangeTween = TweenService:Create(
 	light,
@@ -642,33 +828,56 @@ Image.Visible = false
 
 	-- Kéo tất cả mục tiêu về phía Entity
 	for i = 1, maxPull do
-		local target = targets[i]
-		if target.isPlayer then
-	local tween = TweenService:Create(
-		hrp,
-		TweenInfo.new(1.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
-		{CFrame = targetCFrame}
-	)
-	tween:Play()
-else
-	target.instance.Anchored = true
-	target.instance.CanCollide = false
+			local target = targets[i]
+			if target.isPlayer then
+				local tween = TweenService:Create(
+					hrp,
+					TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+					{CFrame = targetCFrame}
+				)
+				tween:Play()
+			else
+	local obj = target.instance
 
-	TweenService:Create(
-		target.instance,
-		TweenInfo.new(1.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
-		{CFrame = targetCFrame}
-	):Play()
+	if obj:IsA("Model") then
+		local cf = Instance.new("CFrameValue")
+		cf.Value = obj:GetPivot()
+
+		local conn = cf:GetPropertyChangedSignal("Value"):Connect(function()
+			if obj.Parent then
+				obj:PivotTo(cf.Value)
+			end
+		end)
+
+		local tween = TweenService:Create(
+			cf,
+			TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+			{Value = targetCFrame}
+		)
+
+		tween:Play()
+		tween.Completed:Once(function()
+			conn:Disconnect()
+			cf:Destroy()
+		end)
+	else
+		obj.Anchored = true
+		obj.CanCollide = false
+
+		TweenService:Create(
+			obj,
+			TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+			{CFrame = targetCFrame}
+		):Play()
+	end
 end
-end
+		end
 
 	-- 5. CHỜ BAY VỀ TỚI MẶT ENTITY (1.2S) RỒI MỚI TRỪ MÁU
-task.wait(1.4)
+task.wait(0.6)
 
 rangeTween:Cancel()
 
-light.Range = 20
-light.Brightness = 2
 
 task.delay(0.5,function()
 	TweenService:Create(
@@ -685,6 +894,11 @@ for _, template in ipairs(templateChains) do
 	end
 end
 
+task.spawn(function() 
+	task.wait(1.5)
+	blaSound:Play() 
+	end) 
+
 if playerChained and hum then
 	hum.Health = math.max(0, hum.Health - 60)
 
@@ -699,6 +913,8 @@ if playerChained and hum then
 		victimScream.TimePosition = 0
 		victimScream:Play()
 	end
+	
+	
 
 	if hum.Health <= 0 then
 		game.ReplicatedStorage.GameStats['Player_' .. game.Players.LocalPlayer.Name].Total.DeathCause.Value = 'Singularity'
@@ -759,7 +975,7 @@ end)
 		camera.CFrame = camera.CFrame * shakeCf
 	end)
 	camShake:Start()
-	camShake:ShakeOnce(30, 6.5, 0.1, 1, 0.1, 0.5)
+	camShake:ShakeOnce(20, 6.5, 0.1, 1, 0.1, 0.5)
 
 	playSound("bloood")
 	playSound("gore0")
@@ -784,7 +1000,7 @@ local RunService = game:GetService("RunService")
 local face = s:FindFirstChild("Face11", true)
 
 if face and face:IsA("ParticleEmitter") then
-	local duration = 3
+	local duration = 1
 	local start = tick()
 
 	while true do
