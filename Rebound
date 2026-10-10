@@ -113,6 +113,7 @@ TW:Play()
 local cue1 = Instance.new("Sound")
 cue1.Parent = game.Workspace
 cue1.Name = "Cak2"
+cue1.Volume = 0.2
 cue1.SoundId = "rbxassetid://9114397505"
 local distort = Instance.new("DistortionSoundEffect")
 distort.Parent = cue1
@@ -129,13 +130,13 @@ pitch2.Octave = 0.5
 local pitch3 = Instance.new("PitchShiftSoundEffect")
 pitch3.Parent = cue1
 pitch3.Octave = 0.5
-cue1.Volume = 1
+cue1.Volume = 0.2
 cue1:Play()
 local cue2 = Instance.new("Sound")
 cue2.Parent = game.Workspace
 cue2.Name = "Cak"
 cue2.SoundId = "rbxassetid://9114221327"
-cue2.Volume = 3
+cue2.Volume = 1
 cue2.TimePosition = 0
 cue2.PlaybackSpeed = 1
 cue2:Play()
@@ -247,11 +248,8 @@ blueSound = Instance.new("Sound")
 	blueSound.PlaybackSpeed = 1
 	blueSound.Looped = false
 	blueSound.RollOffMaxDistance = 150
-	blueSound.Parent = workspace["ReboundFr" .. spawnCount].RushNew
 	blueSound.TimePosition = 4
 	blueSound.Volume = 2
-
-	gitSoundTemp:Destroy()
 
 	local function GetGitSound(GithubSnd, SoundName)
 		local url = GithubSnd
@@ -263,21 +261,13 @@ blueSound = Instance.new("Sound")
 		return sound
 	end
 
-	local ReallyNear = game.Workspace.Rebound.Fakeout
-
-	local Github = GetGitSound("https://github.com/eoyoustme/Impossible/blob/main/rebound%20fakeout.mp3?raw=true", "fakeout")
-
-	ReallyNear.SoundId = Github.SoundId
-	ReallyNear.PlaybackSpeed = 1
-	ReallyNear.TimePosition = 0
-	ReallyNear.Volume = 2.5
-	ReallyNear:Play()
 		end)
 end)
 
 entity:SetCallback("OnStartMoving", function()
 	print("Entity has started moving")
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/rebounding"))()
+
+	
 end)
 
 entity:SetCallback("OnEnterRoom", function(room: Model, firstTime: boolean)
@@ -308,9 +298,13 @@ end)
 
 entity:SetCallback("OnDespawning", function()
 	print("Entity is despawning")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/cakmay227-svg/random/refs/heads/main/rebounding"))()
+	
 	task.spawn(function() 
 	CheckNoHidingCount()
 	end) 
+	
+	
 end)
 
 entity:SetCallback("OnDespawned", function()
