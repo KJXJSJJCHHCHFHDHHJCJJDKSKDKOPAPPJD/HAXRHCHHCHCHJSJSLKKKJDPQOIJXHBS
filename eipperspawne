@@ -3,7 +3,7 @@
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
-
+local stopHitbox = false
 -- \\ Services // --
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -22,7 +22,7 @@ local Camera = workspace.CurrentCamera
 local Remotes = ReplicatedStorage:WaitForChild("RemotesFolder") :: Folder
 local GameStats = ReplicatedStorage:WaitForChild("GameStats") :: Folder
 local CurrentRooms = workspace:WaitForChild("CurrentRooms") :: Folder
-
+local LatestRoom = ReplicatedStorage.GameData.LatestRoom
 local Assets = {
 	Repentance = LoadCustomInstance(ROOT.."/Assets/Repentance.rbxm"),
 	Earthquake = LoadCustomInstance(ROOT.."/Assets/Earthquake.rbxm")
@@ -836,22 +836,39 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 	
 	-- Phần xử lý di chuyển và pathfinding
 	task.spawn(function()
-		local reboundType = config.Rebounding.Type:upper()
-		if reboundType == "AMBUSH" then
-			local pathfindNodes = GetPathfindNodesAmbush(config)
-			for _, v in next, pathfindNodes do
-				if model:GetAttribute("HitboxTriggered") then break end
-				local cframe = v.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
-				EntityMoveTo(model, cframe, config.Movement.Speed)
-				task.spawn(entity.RunCallback, entity, "OnReachNode", v)
+		local typ = config.Rebounding.Type:upper()
+		local nodes
+
+		if typ == "AMBUSH" then
+			nodes = GetPathfindNodesAmbush(config)
+		elseif typ == "BLITZ" then
+			nodes = GetPathfindNodesBlitz(config)
+			nodes = nodes
+		end
+
+		if not nodes then return end
+
+		for _, n in next, nodes do
+			if model:GetAttribute("HitboxTriggered") then break end
+
+			local room = n.Parent
+			if room and room.Name == "PathfindNodes" then
+				room = room.Parent
 			end
-		elseif reboundType == "BLITZ" then
-			local nodesToCurrent, _ = GetPathfindNodesBlitz(config)
-			for _, n in next, nodesToCurrent do
-				if model:GetAttribute("HitboxTriggered") then break end
-				local cframe = n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
-				EntityMoveTo(model, cframe, config.Movement.Speed)
-				task.spawn(entity.RunCallback, entity, "OnReachNode", n)
+
+			local exit = room and room:FindFirstChild("RoomExit")
+			local latest = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+
+			local cf = n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
+			EntityMoveTo(model, cf, config.Movement.Speed)
+
+			if model:GetAttribute("HitboxTriggered") then break end
+
+			task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
+
+			if exit and n.Name == exit.Name and room == latest then
+				entity:Pause()
+				break
 			end
 		end
 	end)
