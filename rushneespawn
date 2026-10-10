@@ -1191,6 +1191,18 @@ task.spawn(function()
 			continue
 		end
 		
+		local ts = game:GetService("TweenService")
+local obj = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.MainFrame.DamageVignette
+local clone = obj:Clone()
+
+clone.ImageTransparency = 1
+clone.Visible = true
+clone.Parent = obj.Parent
+
+ts:Create(clone, TweenInfo.new(0.2), {
+	ImageTransparency = 0
+}):Play()
+		
 		local bang = Instance.new("Sound") 
 		bang.Parent = workspace
 		bang.Volume = 1
@@ -1214,6 +1226,17 @@ task.spawn(function()
 		if not entity:IsAlive() then
 			break
 		end
+		
+		task.spawn(function() 
+		local fade = ts:Create(clone, TweenInfo.new(0.5), {
+	ImageTransparency = 1
+})
+
+fade:Play()
+fade.Completed:Wait()
+clone:Destroy()
+end) 
+
 
 		state.chasing = false
 		state.returning = true
