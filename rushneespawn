@@ -1199,10 +1199,20 @@ clone.ImageTransparency = 1
 clone.Visible = true
 clone.Parent = obj.Parent
 
-ts:Create(clone, TweenInfo.new(0.2), {
+task.spawn(function() 
+local blopba = ts:Create(clone, TweenInfo.new(0.2), {
 	ImageTransparency = 0
-}):Play()
+})
 		
+		blopba:Play() 
+		blopba.Completed:Wait()
+		local normal = ts:Create(clone, TweenInfo.new(0.3), {
+	ImageTransparency = 0.5
+})
+
+normal:Play()
+end) 
+
 		local bang = Instance.new("Sound") 
 		bang.Parent = workspace
 		bang.Volume = 1
