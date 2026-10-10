@@ -1341,7 +1341,9 @@ task.spawn(function()
 					"pathfinding broke for over 2 years, to the hardcore lightstand. so hardcore", 
 					"@geodude what's up just curious totally wasn't pinging you for a krampus key 🥺 I wannar krampus\nkiwi hasn't released the haste script", 
 					"RUN.", 
-					"Eat bricks and cook the microwave" 
+					"Eat bricks and cook the microwave", 
+					"ur fit is so fire 🔥🔥🔥", 
+					"hello ! it me ! pease !" 
 				}
 				local chosenCaption = captionTexts[math.random(#captionTexts)]
 
