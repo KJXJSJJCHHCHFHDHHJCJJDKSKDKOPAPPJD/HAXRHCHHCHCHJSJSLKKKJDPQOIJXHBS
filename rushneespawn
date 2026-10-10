@@ -31,7 +31,13 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character.PrimaryPart or Character:FindFirstChildWhichIsA("BasePart", true)
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
+local CameraShaker = require(ReplicatedStorage:WaitForChild("CameraShaker"))
 
+local spawnShake = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+	Camera.CFrame = Camera.CFrame * shakeCf
+end)
+
+spawnShake:Start()
 local Remotes = ReplicatedStorage:WaitForChild("RemotesFolder") :: Folder
 local GameStats = ReplicatedStorage:WaitForChild("GameStats") :: Folder
 local CurrentRooms = workspace:WaitForChild("CurrentRooms") :: Folder
@@ -1069,82 +1075,167 @@ task.spawn(function()
 			end
 
 			if char:GetAttribute("Hiding") == true then
-	SetChaseSounds(model, false)
+	local dist = (hrp.Position - model:GetPivot().Position).Magnitude
 
-	local hidden = true
-	local reached = false
+	if dist < 8 then
+		SetChaseSounds(model, false)
 
-	while entity:IsAlive() and hidden and not reached do
-		local dt = RunService.Heartbeat:Wait()
-		char = LocalPlayer.Character
-		hum = char and char:FindFirstChildOfClass("Humanoid")
-		hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local hidden = true
+		local reached = false
 
-		if not char or not hum or hum.Health <= 0 or not hrp then
-			hidden = false
-			break
-		end
-
-		if char:GetAttribute("Hiding") ~= true then
-			hidden = false
-			break
-		end
-
-		local targetPos = hrp.Position + hrp.CFrame.LookVector * 5
-		local pivot = model:GetPivot()
-		local delta = targetPos - pivot.Position
-
-		if delta.Magnitude <= 0.15 then
-			model:PivotTo(CFrame.lookAt(
-				targetPos,
-				targetPos + hrp.CFrame.LookVector
-			))
-			reached = true
-		else
-			local pos = pivot.Position + delta.Unit * math.min(35 * dt, delta.Magnitude)
-			model:PivotTo(CFrame.lookAt(
-				pos,
-				pos + hrp.CFrame.LookVector
-			))
-		end
-	end
-
-	if not entity:IsAlive() then
-		break
-	end
-
-	if not hidden then
-		SetChaseSounds(model, true)
-		continue
-	end
-
-	if reached then
-		local elapsed = 0
-
-		while entity:IsAlive() and elapsed < 3 do
+		while entity:IsAlive() and hidden and not reached do
 			local dt = RunService.Heartbeat:Wait()
 			char = LocalPlayer.Character
+			hum = char and char:FindFirstChildOfClass("Humanoid")
+			hrp = char and char:FindFirstChild("HumanoidRootPart")
 
-			if not char or char:GetAttribute("Hiding") ~= true then
+			if not char or not hum or hum.Health <= 0 or not hrp then
 				hidden = false
 				break
 			end
 
-			elapsed += dt
-		end
-	end
+			if char:GetAttribute("Hiding") ~= true then
+				hidden = false
+				break
+			end
 
-	if not entity:IsAlive() then
+			local targetPos = hrp.Position + hrp.CFrame.LookVector * 5
+			local pivot = model:GetPivot()
+			local delta = targetPos - pivot.Position
+
+			if delta.Magnitude <= 0.15 then
+				model:PivotTo(CFrame.lookAt(targetPos, targetPos + hrp.CFrame.LookVector))
+				reached = true
+			else
+				local pos = pivot.Position + delta.Unit * math.min(35 * dt, delta.Magnitude)
+				model:PivotTo(CFrame.lookAt(pos, pos + hrp.CFrame.LookVector))
+			end
+		end
+
+		if not entity:IsAlive() then
+			break
+		end
+
+		if not hidden then
+			SetChaseSounds(model, true)
+			continue
+		end
+
+		if reached then
+			local elapsed = 0
+
+			while entity:IsAlive() and elapsed < 3 do
+				local dt = RunService.Heartbeat:Wait()
+				char = LocalPlayer.Character
+
+				if not char or char:GetAttribute("Hiding") ~= true then
+					hidden = false
+					break
+				end
+
+				elapsed += dt
+			end
+		end
+
+		if not entity:IsAlive() then
+			break
+		end
+
+		if not hidden then
+			SetChaseSounds(model, true)
+			continue
+		end
+
+		state.chasing = false
+		break
+	elseif dist >= 15 then
+		local damage = dist > 20
+		local hidden = true
+		local reached = false
+
+		while entity:IsAlive() and hidden and not reached do
+			local dt = RunService.Heartbeat:Wait()
+			char = LocalPlayer.Character
+			hum = char and char:FindFirstChildOfClass("Humanoid")
+			hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+			if not char or not hum or hum.Health <= 0 or not hrp then
+				hidden = false
+				break
+			end
+
+			if char:GetAttribute("Hiding") ~= true then
+				hidden = false
+				break
+			end
+
+			local targetPos = hrp.Position + hrp.CFrame.LookVector * 5
+			local pivot = model:GetPivot()
+			local delta = targetPos - pivot.Position
+
+			if delta.Magnitude <= 0.15 then
+				model:PivotTo(CFrame.lookAt(targetPos, targetPos + hrp.CFrame.LookVector))
+				reached = true
+			else
+				local pos = pivot.Position + delta.Unit * math.min(35 * dt, delta.Magnitude)
+				model:PivotTo(CFrame.lookAt(pos, pos + hrp.CFrame.LookVector))
+			end
+		end
+
+		if not entity:IsAlive() then
+			break
+		end
+
+		if not hidden then
+			SetChaseSounds(model, true)
+			continue
+		end
+		
+		local bang = Instance.new("Sound") 
+		bang.Parent = workspace
+		bang.Volume = 1
+		bang.SoundId = "rbxassetid://82228025681045" 
+		bang:Play() 
+
+		if reached and damage then
+			char = LocalPlayer.Character
+			hum = char and char:FindFirstChildOfClass("Humanoid")
+
+			if hum and hum.Health > 0 then
+				hum.Health = math.max(0, hum.Health - 3)
+				spawnShake:ShakeOnce(25, 2, 0.05, 1, 0, 0.8)
+			end
+		end
+
+		if reached then
+			task.wait(3)
+		end
+
+		if not entity:IsAlive() then
+			break
+		end
+
+		state.chasing = false
+		state.returning = true
+		SetChaseSounds(model, false)
+
+		while entity:IsAlive() do
+			local dt = RunService.Heartbeat:Wait()
+			local pivot = model:GetPivot()
+			local delta = state.stopPos.Position - pivot.Position
+			local d = delta.Magnitude
+
+			if d <= 0.1 then
+				model:PivotTo(state.stopPos)
+				break
+			end
+
+			model:PivotTo(pivot + delta.Unit * math.min(20 * dt, d))
+		end
+
+		state.returning = false
 		break
 	end
-
-	if not hidden then
-		SetChaseSounds(model, true)
-		continue
-	end
-
-	state.chasing = false
-	break
 end
 
 			local part = model:FindFirstChildWhichIsA("BasePart", true)
