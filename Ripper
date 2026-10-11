@@ -553,9 +553,9 @@ end)
 
 entity:SetCallback("OnLookAt", function(lineOfSight: boolean)
 	if lineOfSight == true then
-		print("Player is looking at entity")
+	
 	else
-		print("Player view is obstructed by something")
+		
 	end
 end)
 
