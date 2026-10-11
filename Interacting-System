@@ -888,11 +888,9 @@ local function SetupDoor(door)
 	end)
 end
 
+
 local function SetupWardrobe(wardrobe)
-	if not (
-		wardrobe:IsA("Model")
-		and wardrobe.Name == "Wardrobe"
-	) then
+	if not (wardrobe:IsA("Model") and wardrobe.Name == "Wardrobe") then
 		return
 	end
 
@@ -901,94 +899,88 @@ local function SetupWardrobe(wardrobe)
 	end
 
 	task.spawn(function()
-		local prompt
-		local main
-		local hiddenValue
+		local main = wardrobe:FindFirstChild("Main", true)
+		local hiddenValue = wardrobe:FindFirstChild("HiddenPlayer", true)
+		local doors = {}
 
 		repeat
 			if not wardrobe.Parent then
 				return
 			end
 
-			prompt = wardrobe:FindFirstChildWhichIsA(
-				"ProximityPrompt",
-				true
-			)
-
 			main = wardrobe:FindFirstChild("Main", true)
-			hiddenValue = wardrobe:FindFirstChild(
-				"HiddenPlayer",
-				true
-			)
+			hiddenValue = wardrobe:FindFirstChild("HiddenPlayer", true)
 
-			if not prompt or not main or not hiddenValue then
+			doors = {
+				wardrobe:FindFirstChild("Door1"),
+				wardrobe:FindFirstChild("Door2")
+			}
+
+			if not main or not hiddenValue
+				or not doors[1] or not doors[2]
+				or not doors[1]:IsA("BasePart")
+				or not doors[2]:IsA("BasePart") then
 				task.wait()
 			end
-		until prompt and main and hiddenValue
-
-		if not wardrobe.Parent then
-			return
-		end
+		until main and hiddenValue
+			and doors[1] and doors[2]
+			and doors[1]:IsA("BasePart")
+			and doors[2]:IsA("BasePart")
 
 		if wardrobe:GetAttribute("Singular") then
 			return
 		end
 
+		local oldPrompt = wardrobe:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+		if not oldPrompt then
+			return
+		end
+
 		wardrobe:SetAttribute("WardrobeScanned", true)
 
-		prompt.ActionText = "Njkx"
-		prompt.Enabled = false
-		prompt.HoldDuration = 0.25
+		oldPrompt.ActionText = "Njkx"
+		oldPrompt.Enabled = false
+		oldPrompt.HoldDuration = 0.25
 
-		local openPrompt = prompt:Clone()
-		openPrompt.Parent = prompt.Parent
-		openPrompt.Enabled = true
-		openPrompt.HoldDuration = 0.25
-		openPrompt.ActionText = "Hide"
+		local prompts = {}
 
-		local closePrompt = openPrompt:Clone()
-		closePrompt.Parent = prompt.Parent
-		closePrompt.Enabled = false
-		closePrompt.ActionText = "Close"
+		for _, door in ipairs(doors) do
+			local open = oldPrompt:Clone()
+			open.Name = "openPrompt"
+			open.ActionText = "Hide"
+			open.HoldDuration = 0.25
+			open.Enabled = true
+			open.Parent = door
+
+			local close = open:Clone()
+			close.Name = "closePrompt"
+			close.ActionText = "Close"
+			close.Enabled = false
+			close.Parent = door
+
+			table.insert(prompts, {
+				Open = open,
+				Close = close
+			})
+		end
 
 		local originalEnterSound
 		local enterSound
 		local exitSound
 
-		-- Sound có thể được stream/load sau nên đợi riêng từng sound
-		local soundEnter
+		local soundEnter = wardrobe:FindFirstChild("SoundEnter", true)
+		local soundExit = wardrobe:FindFirstChild("SoundExit", true)
 
-		repeat
-			if not wardrobe.Parent then
-				return
-			end
+		while wardrobe.Parent and (not soundEnter or not soundExit) do
+			task.wait()
+			soundEnter = wardrobe:FindFirstChild("SoundEnter", true)
+			soundExit = wardrobe:FindFirstChild("SoundExit", true)
+		end
 
-			soundEnter = wardrobe:FindFirstChild(
-				"SoundEnter",
-				true
-			)
-
-			if not soundEnter then
-				task.wait()
-			end
-		until soundEnter
-
-		local soundExit
-
-		repeat
-			if not wardrobe.Parent then
-				return
-			end
-
-			soundExit = wardrobe:FindFirstChild(
-				"SoundExit",
-				true
-			)
-
-			if not soundExit then
-				task.wait()
-			end
-		until soundExit
+		if not wardrobe.Parent then
+			return
+		end
 
 		for _, v in ipairs(wardrobe:GetDescendants()) do
 			if v:IsA("Sound") then
@@ -999,14 +991,11 @@ local function SetupWardrobe(wardrobe)
 					enterSound.Name = "SoundEnterClone"
 					enterSound.RollOffMaxDistance = 30
 					enterSound.Volume = 0.7
-
-					enterSound.SoundId =
-						GetGitSound(
-							"https://github.com/cakmay227-svg/random/raw/refs/heads/main/openCloset%20new.mp3.oga.mp3?raw=true",
-							"jcjiejbhcus",
-							workspace
-						).SoundId
-
+					enterSound.SoundId = GetGitSound(
+						"https://github.com/cakmay227-svg/random/raw/refs/heads/main/openCloset%20new.mp3.oga.mp3?raw=true",
+						"jcjiejbhcus",
+						workspace
+					).SoundId
 					enterSound.Parent = v.Parent
 
 				elseif v.Name == "SoundExit" then
@@ -1014,56 +1003,53 @@ local function SetupWardrobe(wardrobe)
 					exitSound.Name = "SoundExitClone"
 					exitSound.RollOffMaxDistance = 30
 					exitSound.Volume = 0.7
-
-					exitSound.SoundId =
-						GetGitSound(
-							"https://github.com/cakmay227-svg/random/raw/refs/heads/main/closeCloset%20new.mp3.oga.mp3?raw=true",
-							"kckjjebbcrd",
-							workspace
-						).SoundId
-
+					exitSound.SoundId = GetGitSound(
+						"https://github.com/cakmay227-svg/random/raw/refs/heads/main/closeCloset%20new.mp3.oga.mp3?raw=true",
+						"kckjjebbcrd",
+						workspace
+					).SoundId
 					exitSound.Parent = v.Parent
 				end
 			end
 		end
 
 		local track
-
 		local checkingMain = false
 		local checkingHidden = false
+		local state = "open"
+		local busy = false
+
+		local function SetPrompts(openEnabled, closeEnabled)
+			for _, p in ipairs(prompts) do
+				p.Open.Enabled = openEnabled
+				p.Close.Enabled = closeEnabled
+			end
+		end
 
 		local function IsNearMain()
-			if not main then
-				return false
-			end
-
 			local char = LocalPlayer.Character
-
-			if not char then
-				return false
-			end
-
-			local hrp = char:FindFirstChild(
-				"HumanoidRootPart"
-			)
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
 			if not hrp then
 				return false
 			end
 
-			local mainPos
+			local pos
 
 			if main:IsA("BasePart") then
-				mainPos = main.Position
-
+				pos = main.Position
 			elseif main:IsA("Model") then
-				mainPos = main:GetPivot().Position
-
+				pos = main:GetPivot().Position
 			else
 				return false
 			end
 
-			return (hrp.Position - mainPos).Magnitude < 4
+			return (hrp.Position - pos).Magnitude < 4
+		end
+
+		local function StopMainCheck()
+			checkingMain = false
+			SetPrompts(false, false)
 		end
 
 		local function StartMainCheck()
@@ -1074,14 +1060,12 @@ local function SetupWardrobe(wardrobe)
 			checkingMain = true
 
 			task.spawn(function()
-				while checkingMain do
-					if closePrompt.Enabled then
+				while checkingMain and wardrobe.Parent do
+					if state == "close" then
 						if IsNearMain() then
-							closePrompt.Enabled = false
-							prompt.Enabled = true
+							SetPrompts(true, false)
 						else
-							prompt.Enabled = false
-							closePrompt.Enabled = true
+							SetPrompts(false, true)
 						end
 					end
 
@@ -1090,11 +1074,6 @@ local function SetupWardrobe(wardrobe)
 
 				checkingMain = false
 			end)
-		end
-
-		local function StopMainCheck()
-			checkingMain = false
-			prompt.Enabled = false
 		end
 
 		local function StopHiddenCheck()
@@ -1109,19 +1088,13 @@ local function SetupWardrobe(wardrobe)
 			checkingHidden = true
 
 			task.spawn(function()
-				while checkingHidden do
-					local value = hiddenValue.Value
-
-					if value == LocalPlayer.Name then
-						openPrompt.Enabled = false
-						closePrompt.Enabled = false
+				while checkingHidden and wardrobe.Parent do
+					if hiddenValue.Value == LocalPlayer.Name then
+						SetPrompts(false, false)
 					else
 						checkingHidden = false
-
-						openPrompt.Enabled = true
-						closePrompt.Enabled = false
-						prompt.Enabled = false
-
+						state = "open"
+						SetPrompts(true, false)
 						break
 					end
 
@@ -1133,21 +1106,14 @@ local function SetupWardrobe(wardrobe)
 		end
 
 		local function PlayWardrobeAnimation()
-			local controller =
-				wardrobe:FindFirstChildOfClass(
-					"AnimationController"
-				)
+			local controller = wardrobe:FindFirstChildOfClass("AnimationController")
 
 			if not controller then
-				controller = Instance.new(
-					"AnimationController"
-				)
-
+				controller = Instance.new("AnimationController")
 				controller.Parent = wardrobe
 			end
 
-			local animator =
-				controller:FindFirstChildOfClass("Animator")
+			local animator = controller:FindFirstChildOfClass("Animator")
 
 			if not animator then
 				animator = Instance.new("Animator")
@@ -1170,46 +1136,88 @@ local function SetupWardrobe(wardrobe)
 			task.spawn(function()
 				repeat
 					task.wait()
-				until track.Length > 0
+				until not track or track.Length > 0
+
+				if not track then
+					anim:Destroy()
+					return
+				end
 
 				task.wait(track.Length / 2)
 
 				if track and track.IsPlaying then
 					track:AdjustSpeed(0)
 				end
+
+				anim:Destroy()
 			end)
 		end
 
-		openPrompt.Triggered:Connect(function()
-			openPrompt.Enabled = false
+		local function PlayPlayerAnim(id, speed, reverse)
+			local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+			local hum = char:WaitForChild("Humanoid")
+			local animator = hum:FindFirstChildOfClass("Animator")
 
-			local char =
-				LocalPlayer.Character
-				or LocalPlayer.CharacterAdded:Wait()
+			if not animator then
+				animator = Instance.new("Animator")
+				animator.Parent = hum
+			end
 
+			local anim = Instance.new("Animation")
+			anim.AnimationId = "rbxassetid://" .. id
+
+			local tr = animator:LoadAnimation(anim)
+			tr.Priority = Enum.AnimationPriority.Action4
+			tr:Play()
+
+			if reverse then
+				repeat
+					task.wait()
+				until tr.Length > 0
+
+				tr.TimePosition = 0.2
+				tr:AdjustSpeed(-speed)
+				task.wait(0.5)
+			else
+				tr:AdjustSpeed(speed)
+				tr.Stopped:Wait()
+			end
+
+			tr:Stop()
+			tr:Destroy()
+			anim:Destroy()
+		end
+
+		local function OpenWardrobe()
+			if busy or state ~= "open" then
+				return
+			end
+
+			busy = true
+state = "close"
+SetPrompts(false, false)
+oldPrompt.Enabled = true
+
+local brocmon = oldPrompt.Triggered:Connect(function() 
+oldPrompt.Enabled = false
+brocmon:Disconnect() 
+end) 
+
+			local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 			local hum = char:WaitForChild("Humanoid")
 			local hrp = char:WaitForChild("HumanoidRootPart")
 
 			local cf, size = wardrobe:GetBoundingBox()
-
-			local targetPos =
-				cf.Position
-				+ cf.LookVector * (size.Z / 2 + 2)
-
-			local targetCF =
-				CFrame.lookAt(targetPos, cf.Position)
+			local pos = cf.Position + cf.LookVector * (size.Z / 2 + 2)
+			local target = CFrame.lookAt(pos, cf.Position)
 
 			hum.AutoRotate = false
 			hrp.Anchored = true
 
 			local tween = TweenService:Create(
 				hrp,
-				TweenInfo.new(
-					0.5,
-					Enum.EasingStyle.Quart,
-					Enum.EasingDirection.Out
-				),
-				{CFrame = targetCF}
+				TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+				{CFrame = target}
 			)
 
 			tween:Play()
@@ -1219,46 +1227,7 @@ local function SetupWardrobe(wardrobe)
 					enterSound:Play()
 				end
 
-				local player = Players.LocalPlayer
-
-				local charLocal =
-					player.Character
-					or player.CharacterAdded:Wait()
-
-				local humLocal =
-					charLocal:WaitForChild("Humanoid")
-
-				local animator =
-					humLocal:FindFirstChildOfClass("Animator")
-					or Instance.new(
-						"Animator",
-						humLocal
-					)
-
-				local anim = Instance.new("Animation")
-				anim.AnimationId = "rbxassetid://98224925603818"
-
-				local trackAnim =
-					animator:LoadAnimation(anim)
-
-				trackAnim.Priority =
-					Enum.AnimationPriority.Action4
-
-				trackAnim:Play()
-				trackAnim:AdjustSpeed(0.6)
-
-				task.spawn(function()
-					trackAnim.Stopped:Wait()
-
-					if trackAnim then
-						trackAnim:Stop()
-						trackAnim:Destroy()
-					end
-
-					anim:Destroy()
-				end)
-
-				closePrompt.Enabled = true
+				task.spawn(PlayPlayerAnim, "98224925603818", 0.6, false)
 				StartMainCheck()
 			end)
 
@@ -1269,42 +1238,37 @@ local function SetupWardrobe(wardrobe)
 				end
 
 				PlayWardrobeAnimation()
+				busy = false
 			end)
-		end)
+		end
 
-		closePrompt.Triggered:Connect(function()
-			StopMainCheck()
-			StopHiddenCheck()
+		local function CloseWardrobe()
+			if busy or state ~= "close" then
+				return
+			end
 
-			closePrompt.Enabled = false
+			busy = true
+state = "opening"
+StopMainCheck()
+StopHiddenCheck()
+SetPrompts(false, false)
+oldPrompt.Enabled = false
 
-			local char =
-				LocalPlayer.Character
-				or LocalPlayer.CharacterAdded:Wait()
-
+			local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 			local hum = char:WaitForChild("Humanoid")
 			local hrp = char:WaitForChild("HumanoidRootPart")
 
 			local cf, size = wardrobe:GetBoundingBox()
-
-			local targetPos =
-				cf.Position
-				+ cf.LookVector * (size.Z / 2 + 2)
-
-			local targetCF =
-				CFrame.lookAt(targetPos, cf.Position)
+			local pos = cf.Position + cf.LookVector * (size.Z / 2 + 2)
+			local target = CFrame.lookAt(pos, cf.Position)
 
 			hum.AutoRotate = false
 			hrp.Anchored = true
 
 			local tween = TweenService:Create(
 				hrp,
-				TweenInfo.new(
-					0.7,
-					Enum.EasingStyle.Exponential,
-					Enum.EasingDirection.Out
-				),
-				{CFrame = targetCF}
+				TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+				{CFrame = target}
 			)
 
 			tween:Play()
@@ -1314,48 +1278,7 @@ local function SetupWardrobe(wardrobe)
 					exitSound:Play()
 				end
 
-				local player = Players.LocalPlayer
-
-				local charLocal =
-					player.Character
-					or player.CharacterAdded:Wait()
-
-				local humLocal =
-					charLocal:WaitForChild("Humanoid")
-
-				local animator =
-					humLocal:FindFirstChildOfClass("Animator")
-					or Instance.new(
-						"Animator",
-						humLocal
-					)
-
-				local anim = Instance.new("Animation")
-				anim.AnimationId = "rbxassetid://9461439496"
-
-				local trackAnim =
-					animator:LoadAnimation(anim)
-
-				trackAnim.Priority =
-					Enum.AnimationPriority.Action4
-
-				trackAnim:Play()
-
-				repeat
-					task.wait()
-				until trackAnim.Length > 0
-
-				trackAnim.TimePosition = 0.2
-				trackAnim:AdjustSpeed(-0.6)
-
-				task.wait(0.5)
-
-				if trackAnim then
-					trackAnim:Stop()
-					trackAnim:Destroy()
-				end
-
-				anim:Destroy()
+				task.spawn(PlayPlayerAnim, "9461439496", 0.6, true)
 			end)
 
 			task.delay(0.4, function()
@@ -1368,20 +1291,28 @@ local function SetupWardrobe(wardrobe)
 					track:AdjustSpeed(0.7)
 
 					task.spawn(function()
-						local remaining =
-							track.Length - track.TimePosition
-
-						task.wait(remaining / 0.7)
-
-						openPrompt.Enabled = true
+						local remaining = track.Length - track.TimePosition
+						task.wait(math.max(remaining / 0.7, 0))
+						if state == "opening" then
+							state = "open"
+							SetPrompts(true, false)
+						end
+						busy = false
 					end)
 				else
-					openPrompt.Enabled = true
+					state = "open"
+					SetPrompts(true, false)
+					busy = false
 				end
 			end)
-		end)
+		end
 
-		prompt.Triggered:Connect(function()
+		for _, p in ipairs(prompts) do
+			p.Open.Triggered:Connect(OpenWardrobe)
+			p.Close.Triggered:Connect(CloseWardrobe)
+		end
+
+		oldPrompt.Triggered:Connect(function()
 			if originalEnterSound then
 				originalEnterSound.Volume = 0
 			end
@@ -1389,8 +1320,6 @@ local function SetupWardrobe(wardrobe)
 			if exitSound then
 				exitSound:Play()
 			end
-
-			prompt.Enabled = false
 
 			StopMainCheck()
 			StartHiddenCheck()
@@ -1403,6 +1332,7 @@ local function SetupWardrobe(wardrobe)
 		end)
 	end)
 end
+
 
 local function Process(inst)
 if inst:IsA("Model") then
