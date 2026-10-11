@@ -1398,7 +1398,7 @@ local TimeEntities = {
 }
 
 local RoomEntities = {
-{ Name = "Ripper",      Interval = 130, Chance = 70, Url = "https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Ripper" },
+{ Name = "Ripper",      Interval = 130, Chance = 85, Url = "https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Ripper" },
 { Name = "Silence",    Interval = 220, Chance = 55, Url = "https://raw.githubusercontent.com/PAKKALCKKWKKJXIODKRBFHHAUJCJJJSNDJ/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/SilencePick" },
 { Name = "Rebound",     Interval = 185, Chance = 40, Url = "https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Rebound" },
 { Name = "Singularity-2",     Interval = 100, Chance = 55, Url = "https://raw.githubusercontent.com/vokfhehnbfhixiusushiicshshjjjssGSHHDXGX/REBLAHARDCOREDI/refs/heads/main/Singularity-2" },
