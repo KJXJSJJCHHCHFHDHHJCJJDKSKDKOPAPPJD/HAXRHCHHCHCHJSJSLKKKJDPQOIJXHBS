@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- jd
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -876,6 +876,22 @@ local function SetChaseSounds(model, chase)
 	end
 end
 
+local function FlingNearby(model)
+	local pos = model:GetPivot().Position
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("Model") and obj ~= model and obj.Parent then
+			local ok, pivot = pcall(function()
+				return obj:GetPivot()
+			end)
+
+			if ok and (pivot.Position - pos).Magnitude <= 20 then
+				task.spawn(FlingTarget, obj)
+			end
+		end
+	end
+end
+
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
 	local con
@@ -1542,17 +1558,7 @@ if state.fly then
 		and result.Instance.Transparency < 1 then
 
 		state.fly = false
-		local params = OverlapParams.new()
-params.FilterType = Enum.RaycastFilterType.Exclude
-params.FilterDescendantsInstances = {model, Character}
-
-for _, part in ipairs(workspace:GetPartBoundsInBox(model.ChaseHitbox.CFrame, model.ChaseHitbox.Size, params)) do
-	local target = part:FindFirstAncestorOfClass("Model")
-
-	if target and target ~= model and not target:GetAttribute("Flinging") then
-		task.spawn(FlingTarget, target)
-	end
-end
+		FlingNearby(model)
 
 		local d = (hrp.Position - model:GetPivot().Position).Magnitude
 
