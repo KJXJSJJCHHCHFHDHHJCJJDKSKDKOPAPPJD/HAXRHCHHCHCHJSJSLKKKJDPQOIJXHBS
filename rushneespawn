@@ -806,7 +806,7 @@ local function FlingTarget(target)
 	local parts = {}
 
 	for _, v in ipairs(target:GetDescendants()) do
-		if v:IsA("BasePart") and not v.Anchored and not isBlacklisted(v) then
+		if v:IsA("BasePart") and not isBlacklisted(v) then
 			table.insert(parts, v)
 		end
 	end
@@ -881,26 +881,26 @@ local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local con
 	local state = states[model]
 	
-	local hb = Instance.new("Part")
-hb.Name = "ChaseHitbox"
-hb.Size = Vector3.new(10, 10, 10)
-hb.Transparency = 1
-hb.Anchored = false
-hb.CanCollide = false
-hb.CanTouch = true
-hb.CanQuery = true
-hb.Massless = true
+	local hb = model:FindFirstChild("ChaseHitbox")
 
-local cf = model:GetBoundingBox()
-hb.CFrame = cf
-hb.Parent = model
+if not hb and state and state.chasing and not state.lerpChase then
+	hb = Instance.new("Part")
+	hb.Name = "ChaseHitbox"
+	hb.Size = Vector3.new(10, 10, 10)
+	hb.Transparency = 1
+	hb.Anchored = false
+	hb.CanCollide = false
+	hb.CanTouch = true
+	hb.CanQuery = true
+	hb.Massless = true
+	hb.CFrame = model:GetBoundingBox()
+	hb.Parent = model
 
-
-
-local weld = Instance.new("WeldConstraint")
-weld.Part0 = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
-weld.Part1 = hb
-weld.Parent = hb
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	weld.Part1 = hb
+	weld.Parent = hb
+end
 
 local function InHitbox(pos)
 	local p = hb.CFrame:PointToObjectSpace(pos)
@@ -1160,11 +1160,66 @@ local state = {
 	chasing = false,
 	returning = false,
 	stopPos = nil,
+		fly = false,
+	lerpChase = false,
 	dead = false,
 	hit = false
 }
 
 states[model] = state
+
+local touchcon
+
+local function NewHitbox()
+	if not entity:IsAlive() or not state.chasing or state.lerpChase then
+		return
+	end
+
+	local hb = model:FindFirstChild("ChaseHitbox")
+	if hb then
+		hb:Destroy()
+	end
+
+	hb = Instance.new("Part")
+	hb.Name = "ChaseHitbox"
+	hb.Size = Vector3.new(10, 10, 10)
+	hb.Transparency = 1
+	hb.Anchored = false
+	hb.CanCollide = false
+	hb.CanTouch = true
+	hb.CanQuery = true
+	hb.Massless = true
+	hb.CFrame = model:GetBoundingBox()
+	hb.Parent = model
+
+	local root = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	if not root then
+		hb:Destroy()
+		return
+	end
+
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = hb
+	weld.Parent = hb
+
+	touchcon = hb.Touched:Connect(function(hit)
+		local char = LocalPlayer.Character
+		if not state.chasing or state.lerpChase or not char or not hit:IsDescendantOf(char) then
+			return
+		end
+
+		state.lerpChase = true
+		state.fly = false
+
+		if touchcon then
+			touchcon:Disconnect()
+			touchcon = nil
+		end
+
+		hb:Destroy()
+	end)
+end
 
 task.spawn(function()
 	while entity:IsAlive() and not state.dead do
@@ -1206,10 +1261,13 @@ task.spawn(function()
 		end
 
 		state.chasing = true
-		state.stopPos = model:GetPivot()
-		state.hit = false
+state.stopPos = model:GetPivot()
+state.hit = false
+state.fly = false
+state.lerpChase = false
 
-		SetChaseSounds(model, true)
+NewHitbox()
+SetChaseSounds(model, true)
 
 		local closeTime = 0
 
@@ -1448,7 +1506,7 @@ end
 
 if state.fly then
 	local dir = state.flyDir
-	local step = dir * 65 * dt
+	local step = dir * 30 * dt
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = {model}
@@ -1516,9 +1574,44 @@ slam.SoundId = ids[math.random(1, #ids)]
 slam:Play()
 
 		spawnShake:ShakeOnce(15, 1, 0.05, 0.4, 0, 0.8)
+		
+		task.wait(math.random(0.5, 1))
 	else
 		local pos = pivot.Position + step
 		model:PivotTo(CFrame.lookAt(pos, pos + dir))
+	end
+end
+
+if state.lerpChase then
+	local char = LocalPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+	if char and char:GetAttribute("Hiding") == true then
+		state.chasing = false
+		state.lerpChase = false
+		state.fly = false
+		SetChaseSounds(model, false)
+
+		local hb = model:FindFirstChild("ChaseHitbox")
+		if hb then
+			hb:Destroy()
+		end
+
+		if touchcon then
+			touchcon:Disconnect()
+			touchcon = nil
+		end
+
+		continue
+	end
+
+	if hrp then
+		local pivot = model:GetPivot()
+		local target = hrp.Position
+		local delta = target - pivot.Position
+local pos = pivot.Position + delta.Unit * math.min(100 * dt, delta.Magnitude)
+
+		model:PivotTo(CFrame.lookAt(pos, target))
 	end
 end
 
