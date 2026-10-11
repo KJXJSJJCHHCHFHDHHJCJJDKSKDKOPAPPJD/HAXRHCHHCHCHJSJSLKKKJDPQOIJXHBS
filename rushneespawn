@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
--- nxnx
+
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1009,6 +1009,298 @@ local function FlingNearby(model)
 	end
 end
 
+
+local function GetFlyPath(model, char, goal)
+	if not model or not model.Parent then return nil end
+
+	local start = model:GetPivot().Position
+	local full = goal - start
+	local dist = full.Magnitude
+
+	if dist < 0.1 then
+		return {goal}
+	end
+
+	local step = 4
+	local margin = 48
+	local maxNodes = 10000
+	local maxTime = 0.8
+	local started = os.clock()
+	local localGoal = goal
+
+	if dist > 120 then
+		localGoal = start + full.Unit * 120
+	end
+
+	local size = model:GetExtentsSize()
+	local box = Vector3.new(
+		math.max(size.X * 0.8, 1),
+		math.max(size.Y * 0.8, 1),
+		math.max(size.Z * 0.8, 1)
+	)
+
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Exclude
+	rp.FilterDescendantsInstances = {model, char}
+	rp.RespectCanCollide = true
+
+	local op = OverlapParams.new()
+	op.FilterType = Enum.RaycastFilterType.Exclude
+	op.FilterDescendantsInstances = {model, char}
+	op.RespectCanCollide = true
+	op.MaxParts = 40
+
+	local function clear(a, b)
+		local d = b - a
+		local len = d.Magnitude
+
+		if len < 0.1 then return true end
+		if len > 4096 then return false end
+
+		local dir = d.Unit
+		local at = a
+
+		while (b - at).Magnitude > 0.1 do
+			local amount = math.min((b - at).Magnitude, 128)
+			local delta = dir * amount
+
+			if workspace:Blockcast(CFrame.new(at), box, delta, rp) then
+				return false
+			end
+
+			at += delta
+		end
+
+		return true
+	end
+
+	local function free(p)
+		return #workspace:GetPartBoundsInBox(CFrame.new(p), box, op) == 0
+	end
+
+	local function penalty(p)
+		local parts = workspace:GetPartBoundsInBox(
+			CFrame.new(p),
+			box + Vector3.new(4, 4, 4),
+			op
+		)
+
+		return math.min(#parts, 10) * 2
+	end
+
+	if clear(start, localGoal) then
+		return {localGoal}
+	end
+
+	local minX = math.floor((math.min(start.X, localGoal.X) - margin - start.X) / step)
+	local maxX = math.ceil((math.max(start.X, localGoal.X) + margin - start.X) / step)
+	local minY = math.floor((math.min(start.Y, localGoal.Y) - margin - start.Y) / step)
+	local maxY = math.ceil((math.max(start.Y, localGoal.Y) + margin - start.Y) / step)
+	local minZ = math.floor((math.min(start.Z, localGoal.Z) - margin - start.Z) / step)
+	local maxZ = math.ceil((math.max(start.Z, localGoal.Z) + margin - start.Z) / step)
+
+	local function key(x, y, z)
+		return x .. "," .. y .. "," .. z
+	end
+
+	local function pos(x, y, z)
+		return start + Vector3.new(x * step, y * step, z * step)
+	end
+
+	local function inside(x, y, z)
+		return x >= minX and x <= maxX
+			and y >= minY and y <= maxY
+			and z >= minZ and z <= maxZ
+	end
+
+	local heap, cells, prev, costs, closed, valid, penalties = {}, {}, {}, {}, {}, {}, {}
+	local count = 0
+
+	local function push(v)
+		local i = #heap + 1
+
+		while i > 1 do
+			local p = math.floor(i / 2)
+			if heap[p].f <= v.f then break end
+			heap[i] = heap[p]
+			i = p
+		end
+
+		heap[i] = v
+	end
+
+	local function pop()
+		if #heap == 0 then return nil end
+
+		local first = heap[1]
+		local last = table.remove(heap)
+
+		if #heap > 0 then
+			local i = 1
+
+			while true do
+				local l = i * 2
+				local r = l + 1
+
+				if l > #heap then break end
+
+				local c = l
+				if r <= #heap and heap[r].f < heap[l].f then
+					c = r
+				end
+
+				if heap[c].f >= last.f then break end
+
+				heap[i] = heap[c]
+				i = c
+			end
+
+			heap[i] = last
+		end
+
+		return first
+	end
+
+	local function heuristic(p)
+		return (localGoal - p).Magnitude
+	end
+
+	local sk = key(0, 0, 0)
+	cells[sk] = {x = 0, y = 0, z = 0}
+	costs[sk] = 0
+
+	push({
+		x = 0, y = 0, z = 0,
+		k = sk,
+		g = 0,
+		f = heuristic(start)
+	})
+
+	local offsets = {}
+
+	for x = -1, 1 do
+		for y = -1, 1 do
+			for z = -1, 1 do
+				if x ~= 0 or y ~= 0 or z ~= 0 then
+					offsets[#offsets + 1] = {
+						x, y, z,
+						math.sqrt(x*x + y*y + z*z)
+					}
+				end
+			end
+		end
+	end
+
+	local found
+
+	while #heap > 0 and count < maxNodes do
+		if os.clock() - started > maxTime then break end
+
+		local cur = pop()
+
+		if cur and not closed[cur.k] and cur.g == costs[cur.k] then
+			closed[cur.k] = true
+			count += 1
+
+			local p = pos(cur.x, cur.y, cur.z)
+
+			if (p - localGoal).Magnitude <= step * 1.5
+				and clear(p, localGoal) then
+				found = cur.k
+				break
+			end
+
+			for _, o in ipairs(offsets) do
+				local x = cur.x + o[1]
+				local y = cur.y + o[2]
+				local z = cur.z + o[3]
+
+				if inside(x, y, z) then
+					local k = key(x, y, z)
+
+					if not closed[k] then
+						local np = pos(x, y, z)
+
+						if valid[k] == nil then
+							valid[k] = free(np)
+						end
+
+						if valid[k] and clear(p, np) then
+							if penalties[k] == nil then
+								penalties[k] = penalty(np)
+							end
+
+							local ng = cur.g + step * o[4] + penalties[k]
+
+							if costs[k] == nil or ng < costs[k] then
+								cells[k] = {x = x, y = y, z = z}
+								costs[k] = ng
+								prev[k] = cur.k
+
+								push({
+									x = x, y = y, z = z,
+									k = k,
+									g = ng,
+									f = ng + heuristic(np)
+								})
+							end
+						end
+					end
+				end
+			end
+
+			if count % 100 == 0 then
+				task.wait()
+
+				if not model.Parent or not char.Parent then
+					return nil
+				end
+			end
+		end
+	end
+
+	if not found then return nil end
+
+	local rev = {}
+	local k = found
+
+	while k and k ~= sk do
+		local c = cells[k]
+		rev[#rev + 1] = pos(c.x, c.y, c.z)
+		k = prev[k]
+	end
+
+	local raw = {}
+
+	for i = #rev, 1, -1 do
+		raw[#raw + 1] = rev[i]
+	end
+
+	raw[#raw + 1] = localGoal
+
+	local smooth = {}
+	local at = start
+	local i = 1
+
+	while i <= #raw do
+		local best = i
+
+		for j = #raw, i, -1 do
+			if clear(at, raw[j]) then
+				best = j
+				break
+			end
+		end
+
+		smooth[#smooth + 1] = raw[best]
+		at = raw[best]
+		i = best + 1
+	end
+
+	return smooth
+end
+
+
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
 	local con
@@ -1292,12 +1584,14 @@ local state = {
 	room = nil,
 	chasing = false,
 	returning = false,
-	paths = {},
-pathing = false,
-recordId = 0,
 	stopPos = nil,
 		fly = false,
 	lerpChase = false,
+	pathChase = false,
+chasePath = nil,
+pathIdx = 1,
+nextPath = 0,
+pathSearching = false,
 	dead = false,
 	hit = false
 }
@@ -1305,29 +1599,6 @@ recordId = 0,
 states[model] = state
 
 local touchcon
-
-local function StartRecord()
-	state.recordId += 1
-	local id = state.recordId
-
-	task.spawn(function()
-		while entity:IsAlive()
-			and state.chasing
-			and not state.pathing
-			and not state.lerpChase
-			and state.recordId == id do
-
-			local char = LocalPlayer.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-			if hrp then
-				table.insert(state.paths, hrp.Position)
-			end
-
-			task.wait(0.05)
-		end
-	end)
-end
 
 local function NewHitbox()
 	if not entity:IsAlive() or not state.chasing or state.lerpChase then
@@ -1365,22 +1636,18 @@ local function NewHitbox()
 	touchcon = hb.Touched:Connect(function(hit)
 		local char = LocalPlayer.Character
 		if not state.chasing or state.lerpChase or not char or not hit:IsDescendantOf(char) then
-	return
-end
+			return
+		end
 
-if state.pathing then
-	state.pathing = false
-	state.recordId += 1
-	state.paths = {}
-	hb.Size = Vector3.new(4, 4, 4)
-end
+		state.lerpChase = true
+		state.fly = false
 
 		if touchcon then
 			touchcon:Disconnect()
 			touchcon = nil
 		end
 
-		hb.Size = Vector3.new(4, 4, 4)
+		hb:Destroy()
 	end)
 end
 
@@ -1428,11 +1695,8 @@ state.stopPos = model:GetPivot()
 state.hit = false
 state.fly = false
 state.lerpChase = false
-state.pathing = false
-state.paths = {}
 
 NewHitbox()
-StartRecord()
 SetChaseSounds(model, true)
 
 		local closeTime = 0
@@ -1647,197 +1911,158 @@ end)
 	end
 end
 
-if not state.pathing and not state.lerpChase
-	and (hrp.Position - model:GetPivot().Position).Magnitude > 30 then
-
-	state.pathing = true
-	state.recordId += 1
-	state.fly = false
-
-	local hb = model:FindFirstChild("ChaseHitbox")
-	if hb then
-		hb.Size = Vector3.new(15, 15, 15)
-	end
-
-	
-local function moveTo(pos)
-	while entity:IsAlive() and state.pathing and not state.lerpChase do
-		local dt = RunService.Heartbeat:Wait()
-		local char = LocalPlayer.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		local distToPlayer = hrp and (hrp.Position - model:GetPivot().Position).Magnitude
-
-		if distToPlayer and distToPlayer <= 5 then
-			state.pathing = false
-			state.recordId += 1
-			
-			state.lerpChase = false
-			state.fly = true
-			state.paths = {}
-
-			local hb = model:FindFirstChild("ChaseHitbox")
-			if hb then
-				hb.Size = Vector3.new(4, 4, 4)
-			end
-
-			return false
-		end
-
-		if not char or not hrp or char:GetAttribute("Hiding") == true then
-			state.pathing = false
-			state.recordId += 1
-			state.paths = {}
-			state.fly = false
-
-			local hb = model:FindFirstChild("ChaseHitbox")
-			if hb then
-				hb.Size = Vector3.new(4, 4, 4)
-			end
-
-			return false
-		end
-
-		local pivot = model:GetPivot()
-		local delta = pos - pivot.Position
-		local dist = delta.Magnitude
-
-		if dist <= 0.05 then
-			model:PivotTo(CFrame.new(pos) * pivot.Rotation)
-			return true
-		end
-
-		local nextPos = pivot.Position + delta.Unit * math.min(40 * dt, dist)
-		model:PivotTo(CFrame.lookAt(nextPos, pos))
-	end
-
-	return false
-end
-
-
-	local paths = state.paths
-	state.paths = {}
-
-	if #paths > 0 and moveTo(paths[1]) then
-		table.remove(paths, 1)
-
-		while #paths > 0 and state.pathing and not state.lerpChase do
-			local pos = paths[1]
-
-			if not moveTo(pos) then
-				break
-			end
-
-			table.remove(paths, 1)
-		end
-	end
-
-	if state.pathing and not state.lerpChase then
-		state.pathing = false
-		state.paths = {}
-
-		if hb and hb.Parent then
-			hb.Size = Vector3.new(4, 4, 4)
-		end
-
-		StartRecord()
-	end
-
-	continue
-end
 			
 local pivot = model:GetPivot()
 local now = os.clock()
+local dist = (hrp.Position - pivot.Position).Magnitude
 
-if not state.fly then
+if dist > 50 then
+	state.pathChase = true
+elseif dist < 10 then
+	state.pathChase = false
+	state.chasePath = nil
+	state.pathIdx = 1
 	state.fly = false
+	state.flyAt = now
+end
+
+if state.pathChase and not state.lerpChase then
+	state.fly = false
+
+	if not state.pathSearching and now >= (state.nextPath or 0) then
+		state.nextPath = now + 0.15
+		state.pathSearching = true
+
+		local char = hrp.Parent
+		local goal = hrp.Position
+
+		task.spawn(function()
+			local newPath = GetFlyPath(model, char, goal)
+
+			if model.Parent and state.chasing and state.pathChase
+				and newPath then
+				state.chasePath = newPath
+				state.pathIdx = 1
+			end
+
+			state.pathSearching = false
+		end)
+	end
+
+	local path = state.chasePath
+	local target = path and path[state.pathIdx]
+
+	if target then
+		local pos = model:GetPivot().Position
+		local delta = target - pos
+		local d = delta.Magnitude
+
+		if d <= 0.5 then
+			state.pathIdx += 1
+
+			if state.pathIdx > #path then
+				state.chasePath = nil
+			end
+		else
+			local np = pos + delta.Unit * math.min(30 * dt, d)
+			model:PivotTo(CFrame.lookAt(np, target))
+		end
+	end
+else
+	if not state.fly and not state.flyAt then
 	state.flyAt = now
 	state.flyDir = nil
 end
 
-if not state.flyAt then
-	state.flyAt = now
-end
-
-if not state.fly and not state.lerpChase and now >= state.flyAt then
-	local delta = hrp.Position - pivot.Position
-
-	if delta.Magnitude > 0.01 then
-		state.flyDir = delta.Unit
-		state.fly = true
+	if not state.flyAt then
+		state.flyAt = now
 	end
-end
 
-if state.fly and not state.lerpChase then
-	local dir = state.flyDir
-	local step = dir * 45 * dt
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {model}
+	if not state.fly and not state.lerpChase and now >= state.flyAt then
+		local delta = hrp.Position - pivot.Position
 
-	local result
-	local origin = pivot.Position
-	local remain = step
-
-	for i = 1, 30 do
-		result = workspace:Raycast(origin, remain, params)
-
-		if not result then
-			break
-		end
-
-		local hit = result.Instance
-
-		if hit:IsA("BasePart") and hit.Transparency < 1 then
-			break
-		end
-
-		params.FilterDescendantsInstances = {model, hit}
-		origin = result.Position + dir * 0.01
-		remain = step - (origin - pivot.Position)
-
-		if remain:Dot(dir) <= 0 then
-			result = nil
-			break
+		if delta.Magnitude > 0.01 then
+			state.flyDir = delta.Unit
+			state.fly = true
 		end
 	end
 
-	if result and result.Instance:IsA("BasePart")
-		and result.Instance.Transparency < 1 then
+	if state.fly and not state.lerpChase then
+		local dir = state.flyDir
+		local step = dir * 45 * dt
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = {model}
 
-		state.fly = false
-		FlingNearby(model)
+		local result
+		local origin = pivot.Position
+		local remain = step
 
-		local d = (hrp.Position - model:GetPivot().Position).Magnitude
+		for i = 1, 30 do
+			result = workspace:Raycast(origin, remain, params)
 
-state.flyAt = now + (
-    d < 8 and 0.05 or math.random(80, 100) / 100
-)
+			if not result then
+				break
+			end
 
-local ids = {
-	break1Sound.SoundId,
-	break2Sound.SoundId,
-	break3Sound.SoundId,
-	break4Sound.SoundId
-}
+			local hit = result.Instance
 
-local slam = Instance.new("Sound")
-slam.Parent = model.RushNew
-slam.RollOffMaxDistance = 200
-slam.Volume = 10
-slam.SoundId = ids[math.random(1, #ids)]
-slam:Play()
+			if hit:IsA("BasePart") and hit.Transparency < 1 then
+				break
+			end
 
-		spawnShake:ShakeOnce(15, 1, 0.05, 0.4, 0, 0.8)
-		
-		task.wait(math.random(1.5, 2))
-	else
-		local pos = pivot.Position + step
-		model:PivotTo(CFrame.lookAt(pos, pos + dir))
+			params.FilterDescendantsInstances = {model, hit}
+			origin = result.Position + dir * 0.01
+			remain = step - (origin - pivot.Position)
+
+			if remain:Dot(dir) <= 0 then
+				result = nil
+				break
+			end
+		end
+
+		if result and result.Instance:IsA("BasePart")
+			and result.Instance.Transparency < 1 then
+
+			state.fly = false
+			FlingNearby(model)
+
+			local d = (hrp.Position - model:GetPivot().Position).Magnitude
+			state.flyAt = now + (
+				d < 8 and 0.05 or math.random(80, 100) / 100
+			)
+
+			local ids = {
+				break1Sound.SoundId,
+				break2Sound.SoundId,
+				break3Sound.SoundId,
+				break4Sound.SoundId
+			}
+
+			local slam = Instance.new("Sound")
+			slam.Parent = model.RushNew
+			slam.RollOffMaxDistance = 200
+			slam.Volume = 10
+			slam.SoundId = ids[math.random(1, #ids)]
+			slam:Play()
+
+			spawnShake:ShakeOnce(15, 1, 0.05, 0.4, 0, 0.8)
+
+			task.wait(math.random(1.5, 2))
+		else
+			local pos = pivot.Position + step
+			model:PivotTo(CFrame.lookAt(pos, pos + dir))
+		end
 	end
 end
 
 if state.lerpChase then
+	state.pathChase = false
+	state.chasePath = nil
+	state.fly = false
+
 	local char = LocalPlayer.Character
+	
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 
 	if char and char:GetAttribute("Hiding") == true then
