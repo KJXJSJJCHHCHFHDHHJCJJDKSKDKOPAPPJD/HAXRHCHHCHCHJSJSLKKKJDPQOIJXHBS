@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- nxnx
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1670,9 +1670,10 @@ local function moveTo(pos)
 		if distToPlayer and distToPlayer <= 5 then
 			state.pathing = false
 			state.recordId += 1
+			
+			state.lerpChase = false
+			state.fly = true
 			state.paths = {}
-			state.lerpChase = true
-			state.fly = false
 
 			local hb = model:FindFirstChild("ChaseHitbox")
 			if hb then
