@@ -9,7 +9,24 @@
             |___/                                                   |___/         |_|
 ]]--
 
+local function GetGitSound(GithubSnd, SoundName)
+			local url = GithubSnd
+			if not isfile(SoundName .. ".mp3") then
+				writefile(SoundName .. ".mp3", game:HttpGet(url))
+			end
+			local sound = Instance.new("Sound")
+			sound.SoundId = (getcustomasset or getsynasset)(SoundName .. ".mp3")
+			return sound
+		end
+		
+		local break1Sound = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/break1.mp3?raw=true", "kvlldkxkcjjcfj")
+		local break2Sound = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/break2.mp3?raw=true", "jvkldkkjxjfjf")
+		local break3Sound = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/break3.mp3?raw=true", "ppcodkdjjcjjx")
+		local break4Sound = GetGitSound("https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/break4.mp3?raw=true", "jvjkdkdkcjcjjdj")
+
 if getgenv().RushSPawner then return getgenv().RushSPawner end
+
+
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 
@@ -1622,7 +1639,7 @@ end
 
 if state.fly and not state.lerpChase then
 	local dir = state.flyDir
-	local step = dir * 60 * dt
+	local step = dir * 45 * dt
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = {model}
@@ -1667,21 +1684,22 @@ state.flyAt = now + (
 )
 
 local ids = {
-	"rbxassetid://130869638485735",
-	"rbxassetid://7158347304",
-	"rbxassetid://133653755194228",
-	"rbxassetid://104568144438070"
+	break1Sound.SoundId,
+	break2Sound.SoundId,
+	break3Sound.SoundId,
+	break4Sound.SoundId
 }
 
 local slam = Instance.new("Sound")
-slam.Parent = workspace
+slam.Parent = model.RushNew
+slam.RollOffMaxDistance = 200
 slam.Volume = 0.6
 slam.SoundId = ids[math.random(1, #ids)]
 slam:Play()
 
 		spawnShake:ShakeOnce(15, 1, 0.05, 0.4, 0, 0.8)
 		
-		task.wait(math.random(1, 1.5))
+		task.wait(math.random(1.5, 2))
 	else
 		local pos = pivot.Position + step
 		model:PivotTo(CFrame.lookAt(pos, pos + dir))
