@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- jckx
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -782,6 +782,38 @@ local function isBlacklisted(obj)
 	return false
 end
 
+local function hasTargetParent(target, room)
+	local p = target.Parent
+
+	while p and p ~= room do
+		if p:IsA("Model") then
+			return true
+		end
+		p = p.Parent
+	end
+
+	return false
+end
+
+local function shakeCollision(part)
+	if not part or not part.Parent then return end
+
+	for _, v in ipairs(part:GetConnectedParts(true)) do
+		if v:IsA("BasePart") and not v.Anchored then
+			v.AssemblyLinearVelocity += Vector3.new(
+				math.random(-10, 10),
+				math.random(5, 15),
+				math.random(-10, 10)
+			)
+		end
+	end
+end
+
+local TARGET_MASS = 0
+
+local function isInside(part, model)
+	return part == model or part:IsDescendantOf(model)
+end
 
 local function FlingTarget(target)
 	if not target or not target:IsA("Model") or not target.Parent then
