@@ -721,6 +721,128 @@ end
 
 local states = {}
 
+local blacklist = {
+	"wardrobe", "rafter", "bed", "rug", "carpet", "sideroom",
+	"key", "drawer", "breaker", "table", "desk", "gold",
+	"dresser", "rift", "chest", "floor", "wall", "door",
+	"ceiling", "light", "beam", "model", "chandelier",
+	"window", "curtain", "gate", "stairs", "vent", "lattice",
+	"barrelstack", "smoothie", "rolltop", "dupe", "boards",
+	"crucifix", "flashlight", "moonfloat", "lockpick", "candle",
+	"skeleton key", "fireplace"
+}
+
+local function hasAncestorContaining(obj, name)
+	local p = obj.Parent
+
+	while p do
+		if p:IsA("Model") and p ~= obj then
+			if string.find(p.Name:lower(), name, 1, true) then
+				return true
+			end
+		end
+
+		if p == CurrentRooms then
+			break
+		end
+
+		p = p.Parent
+	end
+
+	return false
+end
+
+local function isBlacklisted(obj)
+	local name = obj.Name:lower()
+
+	if obj:IsA("BasePart") then
+		if string.find(name, "book", 1, true) then
+			return not hasAncestorContaining(obj, "book")
+		end
+
+		if string.find(name, "light", 1, true) then
+			return not hasAncestorContaining(obj, "book")
+		end
+
+		if string.find(name, "wall", 1, true) then
+			return not hasAncestorContaining(obj, "pillar")
+		end
+
+		if string.find(name, "board", 1, true) then
+			return not hasAncestorContaining(obj, "wooden")
+		end
+	end
+
+	for _, name in ipairs(blacklist) do
+		if string.find(obj.Name:lower(), name, 1, true) then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function FlingTarget(target)
+	if not target or not target:IsA("Model") or not target.Parent then
+		return
+	end
+
+	if target:GetAttribute("Flinging") or isBlacklisted(target) then
+		return
+	end
+
+	local p = target.Parent
+
+	while p and p ~= CurrentRooms do
+		if p:IsA("Model") and isBlacklisted(p) then
+			return
+		end
+
+		p = p.Parent
+	end
+
+	target:SetAttribute("Flinging", true)
+
+	local parts = {}
+
+	for _, v in ipairs(target:GetDescendants()) do
+		if v:IsA("BasePart") and not v.Anchored and not isBlacklisted(v) then
+			table.insert(parts, v)
+		end
+	end
+
+	if #parts == 0 then
+		target:SetAttribute("Flinging", nil)
+		return
+	end
+
+	local root = target.PrimaryPart
+	if not root or root.Anchored or isBlacklisted(root) then
+		root = parts[1]
+	end
+
+	local mass = root.AssemblyMass
+	local dir = Vector3.new(
+		math.random(-100, 100) / 100,
+		1,
+		math.random(-100, 100) / 100
+	).Unit
+
+	root:ApplyImpulse(dir * mass * 100)
+
+	root:ApplyAngularImpulse(Vector3.new(
+		math.random(-100, 100),
+		math.random(-100, 100),
+		math.random(-100, 100)
+	) * mass * 30)
+
+	task.delay(1, function()
+		if target.Parent then
+			target:SetAttribute("Flinging", nil)
+		end
+	end)
+end
+
 local function InsideRoom(room, pos)
 	if not room or not room:IsA("Model") then
 		return false
@@ -765,13 +887,15 @@ hb.Size = Vector3.new(10, 10, 10)
 hb.Transparency = 1
 hb.Anchored = false
 hb.CanCollide = false
-hb.CanTouch = false
+hb.CanTouch = true
 hb.CanQuery = true
 hb.Massless = true
 
 local cf = model:GetBoundingBox()
 hb.CFrame = cf
 hb.Parent = model
+
+
 
 local weld = Instance.new("WeldConstraint")
 weld.Part0 = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
@@ -1324,7 +1448,7 @@ end
 
 if state.fly then
 	local dir = state.flyDir
-	local step = dir * 100 * dt
+	local step = dir * 65 * dt
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = {model}
@@ -1360,10 +1484,22 @@ if state.fly then
 		and result.Instance.Transparency < 1 then
 
 		state.fly = false
+		local params = OverlapParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = {model, Character}
+
+for _, part in ipairs(workspace:GetPartBoundsInBox(model.ChaseHitbox.CFrame, model.ChaseHitbox.Size, params)) do
+	local target = part:FindFirstAncestorOfClass("Model")
+
+	if target and target ~= model and not target:GetAttribute("Flinging") then
+		task.spawn(FlingTarget, target)
+	end
+end
+
 		local d = (hrp.Position - model:GetPivot().Position).Magnitude
 
 state.flyAt = now + (
-    d < 8 and 0.05 or math.random(40, 70) / 100
+    d < 8 and 0.05 or math.random(80, 100) / 100
 )
 
 local ids = {
