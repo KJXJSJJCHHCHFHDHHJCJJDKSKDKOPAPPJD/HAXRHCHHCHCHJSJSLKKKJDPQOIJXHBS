@@ -758,6 +758,32 @@ local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
 	local con
 	local state = states[model]
+	
+	local hb = Instance.new("Part")
+hb.Name = "ChaseHitbox"
+hb.Size = Vector3.new(10, 10, 10)
+hb.Transparency = 1
+hb.Anchored = false
+hb.CanCollide = false
+hb.CanTouch = false
+hb.CanQuery = true
+hb.Massless = true
+
+local cf = model:GetBoundingBox()
+hb.CFrame = cf
+hb.Parent = model
+
+local weld = Instance.new("WeldConstraint")
+weld.Part0 = rootPart
+weld.Part1 = hb
+weld.Parent = hb
+
+local function InHitbox(pos)
+	local p = hb.CFrame:PointToObjectSpace(pos)
+	return math.abs(p.X) <= 5
+		and math.abs(p.Y) <= 5
+		and math.abs(p.Z) <= 5
+end
 
 	con = RunService.Heartbeat:Connect(function(dt)
 		if not model.Parent then
@@ -1215,8 +1241,8 @@ end)
 
 		local bang = Instance.new("Sound") 
 		bang.Parent = workspace
-		bang.Volume = 1
-		bang.SoundId = "rbxassetid://82228025681045" 
+		bang.Volume = 1.5
+		bang.SoundId = "rbxassetid://117158373103667" 
 		bang:Play() 
 
 		if reached and damage then
@@ -1224,13 +1250,15 @@ end)
 			hum = char and char:FindFirstChildOfClass("Humanoid")
 
 			if hum and hum.Health > 0 then
-				hum.Health = math.max(0, hum.Health - 3)
-				spawnShake:ShakeOnce(25, 2, 0.05, 1, 0, 0.8)
+				hum.Health = math.max(0, hum.Health - 10)
+				spawnShake:ShakeOnce(25, 3, 0.05, 1, 0, 0.8)
 			end
 		end
+		
+		SetChaseSounds(model, false)
 
 		if reached then
-			task.wait(3)
+			task.wait(1.5)
 		end
 
 		if not entity:IsAlive() then
@@ -1250,7 +1278,7 @@ end)
 
 		state.chasing = false
 		state.returning = true
-		SetChaseSounds(model, false)
+		
 
 		while entity:IsAlive() do
 			local dt = RunService.Heartbeat:Wait()
@@ -1271,36 +1299,95 @@ end)
 	end
 end
 
-			local part = model:FindFirstChildWhichIsA("BasePart", true)
-			if not part then
-				break
-			end
+			
+local pivot = model:GetPivot()
+local now = os.clock()
 
-			local pivot = model:GetPivot()
-local target = hrp.Position
-local delta = target - pivot.Position
-local dist = delta.Magnitude
-
-if dist > 3 then
-	local step = math.min(35 * dt, dist - 2)
-	local pos = pivot.Position + delta.Unit * step
-	model:PivotTo(CFrame.lookAt(pos, target))
+if not state.fly then
+	state.fly = false
+	state.flyAt = now
+	state.flyDir = nil
 end
 
-			if (hrp.Position - part.Position).Magnitude < 8 then
-				closeTime += dt
-
-		if closeTime >= 3 and not state.hit then
-	state.hit = true
-	DamagePlayer(entity)
-	state.chasing = false
-	state.returning = false
-	SetChaseSounds(model, false)
-	break
+if not state.flyAt then
+	state.flyAt = now
 end
-			else
-				closeTime = 0
-			end
+
+if not state.fly and now >= state.flyAt then
+	local delta = hrp.Position - pivot.Position
+
+	if delta.Magnitude > 0.01 then
+		state.flyDir = delta.Unit
+		state.fly = true
+	end
+end
+
+if state.fly then
+	local dir = state.flyDir
+	local step = dir * 100 * dt
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {model}
+
+	local result
+	local origin = pivot.Position
+	local remain = step
+
+	for i = 1, 30 do
+		result = workspace:Raycast(origin, remain, params)
+
+		if not result then
+			break
+		end
+
+		local hit = result.Instance
+
+		if hit:IsA("BasePart") and hit.Transparency < 1 then
+			break
+		end
+
+		params.FilterDescendantsInstances = {model, hit}
+		origin = result.Position + dir * 0.01
+		remain = step - (origin - pivot.Position)
+
+		if remain:Dot(dir) <= 0 then
+			result = nil
+			break
+		end
+	end
+
+	if result and result.Instance:IsA("BasePart")
+		and result.Instance.Transparency < 1 then
+
+		state.fly = false
+		state.flyAt = now + (
+			InHitbox(hrp.Position) and 0.05 or math.random(20, 50) / 100
+		)
+
+		spawnShake:ShakeOnce(25, 1, 0.05, 1, 0, 0.8)
+	else
+		local pos = pivot.Position + step
+		model:PivotTo(CFrame.lookAt(pos, pos + dir))
+	end
+end
+
+local part = model:FindFirstChildWhichIsA("BasePart", true)
+
+if part and (hrp.Position - part.Position).Magnitude < 8 then
+	closeTime += dt
+
+	if closeTime >= 3 and not state.hit then
+		state.hit = true
+		DamagePlayer(entity)
+		state.chasing = false
+		state.returning = false
+		SetChaseSounds(model, false)
+		break
+	end
+else
+	closeTime = 0
+end
+
 		end
 		
 		if state.hit then
