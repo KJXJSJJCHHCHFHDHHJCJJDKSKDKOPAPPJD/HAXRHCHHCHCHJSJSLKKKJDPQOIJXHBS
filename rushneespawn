@@ -1506,7 +1506,7 @@ end
 
 if state.fly then
 	local dir = state.flyDir
-	local step = dir * 30 * dt
+	local step = dir * 60 * dt
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = {model}
