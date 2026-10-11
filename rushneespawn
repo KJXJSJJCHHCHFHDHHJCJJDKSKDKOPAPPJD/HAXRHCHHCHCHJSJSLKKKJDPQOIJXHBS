@@ -1292,6 +1292,9 @@ local state = {
 	room = nil,
 	chasing = false,
 	returning = false,
+	paths = {},
+pathing = false,
+recordId = 0,
 	stopPos = nil,
 		fly = false,
 	lerpChase = false,
@@ -1302,6 +1305,29 @@ local state = {
 states[model] = state
 
 local touchcon
+
+local function StartRecord()
+	state.recordId += 1
+	local id = state.recordId
+
+	task.spawn(function()
+		while entity:IsAlive()
+			and state.chasing
+			and not state.pathing
+			and not state.lerpChase
+			and state.recordId == id do
+
+			local char = LocalPlayer.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+			if hrp then
+				table.insert(state.paths, hrp.Position)
+			end
+
+			task.wait(0.05)
+		end
+	end)
+end
 
 local function NewHitbox()
 	if not entity:IsAlive() or not state.chasing or state.lerpChase then
@@ -1339,18 +1365,22 @@ local function NewHitbox()
 	touchcon = hb.Touched:Connect(function(hit)
 		local char = LocalPlayer.Character
 		if not state.chasing or state.lerpChase or not char or not hit:IsDescendantOf(char) then
-			return
-		end
+	return
+end
 
-		state.lerpChase = true
-		state.fly = false
+if state.pathing then
+	state.pathing = false
+	state.recordId += 1
+	state.paths = {}
+	hb.Size = Vector3.new(4, 4, 4)
+end
 
 		if touchcon then
 			touchcon:Disconnect()
 			touchcon = nil
 		end
 
-		hb:Destroy()
+		hb.Size = Vector3.new(4, 4, 4)
 	end)
 end
 
@@ -1398,8 +1428,11 @@ state.stopPos = model:GetPivot()
 state.hit = false
 state.fly = false
 state.lerpChase = false
+state.pathing = false
+state.paths = {}
 
 NewHitbox()
+StartRecord()
 SetChaseSounds(model, true)
 
 		local closeTime = 0
@@ -1614,6 +1647,102 @@ end)
 	end
 end
 
+if not state.pathing and not state.lerpChase
+	and (hrp.Position - model:GetPivot().Position).Magnitude > 30 then
+
+	state.pathing = true
+	state.recordId += 1
+	state.fly = false
+
+	local hb = model:FindFirstChild("ChaseHitbox")
+	if hb then
+		hb.Size = Vector3.new(15, 15, 15)
+	end
+
+	
+local function moveTo(pos)
+	while entity:IsAlive() and state.pathing and not state.lerpChase do
+		local dt = RunService.Heartbeat:Wait()
+		local char = LocalPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local distToPlayer = hrp and (hrp.Position - model:GetPivot().Position).Magnitude
+
+		if distToPlayer and distToPlayer <= 5 then
+			state.pathing = false
+			state.recordId += 1
+			state.paths = {}
+			state.lerpChase = true
+			state.fly = false
+
+			local hb = model:FindFirstChild("ChaseHitbox")
+			if hb then
+				hb.Size = Vector3.new(4, 4, 4)
+			end
+
+			return false
+		end
+
+		if not char or not hrp or char:GetAttribute("Hiding") == true then
+			state.pathing = false
+			state.recordId += 1
+			state.paths = {}
+			state.fly = false
+
+			local hb = model:FindFirstChild("ChaseHitbox")
+			if hb then
+				hb.Size = Vector3.new(4, 4, 4)
+			end
+
+			return false
+		end
+
+		local pivot = model:GetPivot()
+		local delta = pos - pivot.Position
+		local dist = delta.Magnitude
+
+		if dist <= 0.05 then
+			model:PivotTo(CFrame.new(pos) * pivot.Rotation)
+			return true
+		end
+
+		local nextPos = pivot.Position + delta.Unit * math.min(40 * dt, dist)
+		model:PivotTo(CFrame.lookAt(nextPos, pos))
+	end
+
+	return false
+end
+
+
+	local paths = state.paths
+	state.paths = {}
+
+	if #paths > 0 and moveTo(paths[1]) then
+		table.remove(paths, 1)
+
+		while #paths > 0 and state.pathing and not state.lerpChase do
+			local pos = paths[1]
+
+			if not moveTo(pos) then
+				break
+			end
+
+			table.remove(paths, 1)
+		end
+	end
+
+	if state.pathing and not state.lerpChase then
+		state.pathing = false
+		state.paths = {}
+
+		if hb and hb.Parent then
+			hb.Size = Vector3.new(4, 4, 4)
+		end
+
+		StartRecord()
+	end
+
+	continue
+end
 			
 local pivot = model:GetPivot()
 local now = os.clock()
@@ -1693,7 +1822,7 @@ local ids = {
 local slam = Instance.new("Sound")
 slam.Parent = model.RushNew
 slam.RollOffMaxDistance = 200
-slam.Volume = 1.5
+slam.Volume = 10
 slam.SoundId = ids[math.random(1, #ids)]
 slam:Play()
 
