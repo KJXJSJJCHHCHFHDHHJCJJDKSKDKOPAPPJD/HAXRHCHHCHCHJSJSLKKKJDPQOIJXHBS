@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- kcjd
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1032,12 +1032,15 @@ local function GetFlyPath(model, char, goal)
 		localGoal = start + full.Unit * 120
 	end
 
-	local size = model:GetExtentsSize()
-	local box = Vector3.new(
-		math.max(size.X * 0.8, 1),
-		math.max(size.Y * 0.8, 1),
-		math.max(size.Z * 0.8, 1)
-	)
+	local pp = model:FindFirstChild("RushNew")
+if not pp or not pp:IsA("BasePart") then return nil end
+
+local size = pp.Size / 3
+local box = Vector3.new(
+	math.max(size.X * 0.8, 1),
+	math.max(size.Y * 0.8, 1),
+	math.max(size.Z * 0.8, 1)
+)
 
 	local rp = RaycastParams.new()
 	rp.FilterType = Enum.RaycastFilterType.Exclude
