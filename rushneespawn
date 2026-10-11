@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- jjc
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -774,7 +774,7 @@ hb.CFrame = cf
 hb.Parent = model
 
 local weld = Instance.new("WeldConstraint")
-weld.Part0 = rootPart
+weld.Part0 = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
 weld.Part1 = hb
 weld.Parent = hb
 
@@ -1360,9 +1360,11 @@ if state.fly then
 		and result.Instance.Transparency < 1 then
 
 		state.fly = false
-		state.flyAt = now + (
-			InHitbox(hrp.Position) and 0.05 or math.random(20, 50) / 100
-		)
+		local d = (hrp.Position - model:GetPivot().Position).Magnitude
+
+state.flyAt = now + (
+    d < 8 and 0.05 or math.random(20, 50) / 100
+)
 
 		spawnShake:ShakeOnce(25, 1, 0.05, 1, 0, 0.8)
 	else
