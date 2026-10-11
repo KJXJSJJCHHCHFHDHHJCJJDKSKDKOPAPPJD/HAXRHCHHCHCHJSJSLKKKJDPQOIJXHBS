@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
--- jckx
+
 if getgenv().RushSPawner then return getgenv().RushSPawner end
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -985,7 +985,7 @@ local function FlingNearby(model)
 				return obj:GetPivot()
 			end)
 
-			if ok and (pivot.Position - pos).Magnitude <= 20 then
+			if ok and (pivot.Position - pos).Magnitude <= 40 then
 				task.spawn(FlingTarget, obj)
 			end
 		end
@@ -1611,7 +1611,7 @@ if not state.flyAt then
 	state.flyAt = now
 end
 
-if not state.fly and now >= state.flyAt then
+if not state.fly and not state.lerpChase and now >= state.flyAt then
 	local delta = hrp.Position - pivot.Position
 
 	if delta.Magnitude > 0.01 then
@@ -1620,7 +1620,7 @@ if not state.fly and now >= state.flyAt then
 	end
 end
 
-if state.fly then
+if state.fly and not state.lerpChase then
 	local dir = state.flyDir
 	local step = dir * 60 * dt
 	local params = RaycastParams.new()
@@ -1717,7 +1717,7 @@ local target = hrp.Position
 local delta = target - pivot.Position
 local dist = delta.Magnitude
 
-if dist > 3 then
+if dist > 2 then
 	local pos = pivot.Position + delta.Unit * math.min(60 * dt, dist - 2)
 	model:PivotTo(CFrame.lookAt(pos, target))
 end
