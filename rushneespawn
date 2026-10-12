@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
--- jppd
+-- jpoo
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -993,6 +993,50 @@ local function SetChaseSounds(model, chase)
 	end
 end
 
+
+local function TweenCease(model, stop)
+	local tw = {}
+	local ti = TweenInfo.new(2, Enum.EasingStyle.Linear)
+	local st = states[model]
+
+	if not st then return end
+	st.ceaseOriginals = st.ceaseOriginals or {}
+
+	for _, v in ipairs(model:GetDescendants()) do
+		if v:IsA("Sound") then
+			local key = v
+			if st.ceaseOriginals[key] == nil then
+				st.ceaseOriginals[key] = v.PlaybackSpeed
+			end
+
+			local target = stop and 0 or st.ceaseOriginals[key]
+			local t = TweenService:Create(v, ti, {
+				PlaybackSpeed = target
+			})
+			t:Play()
+			tw[#tw + 1] = t
+
+		elseif v:IsA("ParticleEmitter") then
+			local key = v
+			if st.ceaseOriginals[key] == nil then
+				st.ceaseOriginals[key] = v.TimeScale
+			end
+
+			local target = stop and 0 or st.ceaseOriginals[key]
+			local t = TweenService:Create(v, ti, {
+				TimeScale = target
+			})
+			t:Play()
+			tw[#tw + 1] = t
+		end
+	end
+
+	if #tw > 0 then
+		tw[#tw].Completed:Wait()
+	end
+end
+
+
 local function FlingNearby(model)
 	local pos = model:GetPivot().Position
 
@@ -1657,6 +1701,10 @@ end
 task.spawn(function()
 	while entity:IsAlive() and not state.dead do
 		task.wait(0.05)
+		
+		if state.ceasePaused or model:GetAttribute("Paused") then
+	continue
+end
 
 		if state.chasing then
 			continue
@@ -1705,7 +1753,15 @@ SetChaseSounds(model, true)
 		local closeTime = 0
 
 		while entity:IsAlive() and state.chasing do
-			local dt = RunService.Heartbeat:Wait()
+	local dt = RunService.Heartbeat:Wait()
+
+	while entity:IsAlive() and state.ceasePaused do
+		RunService.Heartbeat:Wait()
+	end
+
+	if not entity:IsAlive() then
+		break
+	end
 
 			char = LocalPlayer.Character
 			hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -2169,10 +2225,46 @@ end)
         end
     end
     
-    task.wait(config.Movement.Delay)
+    
+task.wait(config.Movement.Delay)
 
-    -- Movement
-    task.spawn(entity.RunCallback, entity, "OnStartMoving")
+state.ceasePaused = false
+
+task.spawn(function()
+	while entity:IsAlive() and not state.dead do
+		task.wait(0.05)
+
+		if state.ceasePaused or getgenv().CeaseStop ~= true then
+			continue
+		end
+
+		state.ceasePaused = true
+		entity:Pause()
+
+		TweenCease(model, true)
+
+		while entity:IsAlive() and getgenv().CeaseStop == true do
+			task.wait(0.05)
+		end
+
+		if not entity:IsAlive() or state.dead then
+			break
+		end
+
+		TweenCease(model, false)
+
+		if not entity:IsAlive() or state.dead then
+			break
+		end
+
+		model:SetAttribute("Paused", false)
+		state.ceasePaused = false
+	end
+end)
+
+-- Movement
+task.spawn(entity.RunCallback, entity, "OnStartMoving")
+
     task.spawn(function()
         while
             entity:IsAlive()
