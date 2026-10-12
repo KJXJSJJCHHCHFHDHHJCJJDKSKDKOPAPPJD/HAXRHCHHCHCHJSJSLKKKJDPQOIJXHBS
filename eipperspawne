@@ -1,7 +1,8 @@
+
 --[[ __ __ _ _ ______ _ _ _ _____ __ _____ \ \ / / (_) ( ) | ____| | | (_) | / ____| \ \ / /__ \ \ \ / / _ _ __ ___ ___ _|/ ___ | |__ _ __ | |_ _| |_ _ _ | (___ _ __ __ ___ ___ __ ___ _ __ \ \ / / ) | \ \/ / | | | '_ \| \ \/ / | | | / __| | __| | '_ \| __| | __| | | | \___ \| '_ \ / _` \ \ /\ / / '_ \ / _ \ '__| \ \/ / / / \ /| |_| | | | | |> <| |_| | \__ \ | |____| | | | |_| | |_| |_| | ____) | |_) | (_| |\ V V /| | | | __/ | \ / / /_ \/ \__, |_| |_|_/_/\_\\__,_| |___/ |______|_| |_|\__|_|\__|\__, | |_____/| .__/ \__,_| \_/\_/ |_| |_|\___|_| \/ |____| __/ | __/ | | | |___/ |___/ |_| ]]--
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
--- jxk
+-- jxbbb
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 local stopHitbox = false
 -- \\ Services // --
@@ -928,7 +929,36 @@ local function RunBla(entity)
 	end
 
 	if chance == 1 then
-		task.wait(2)
+	local snd = GetGitSound(
+		"https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/XRecorder_Edited_20261012_01.mp3?raw=true",
+		"hvjdjjjc"
+	)
+
+	snd.Name = "Slam"
+	snd.Volume = 3.5
+	snd.PlaybackSpeed = 1
+	snd.Looped = false
+	snd.RollOffMaxDistance = 200
+	snd.Parent = root
+	snd:Play()
+	
+	local CameraShaker = require(ReplicatedStorage.CameraShaker)
+		local camera = workspace.CurrentCamera
+		local s = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cf)
+			camera.CFrame = camera.CFrame * cf
+		end)
+		s:Start()
+		s:ShakeOnce(15, 11.5, 0.1, 2, 15, 0.5)
+		
+		snd.Ended:Wait()
+		
+		if entity:IsAlive() then
+		entity:Pause()
+	end
+	
+	
+	
+		
 		FadeDestroy(model)
 		return
 	end
@@ -942,7 +972,7 @@ local function RunBla(entity)
 	snd.Volume = 3.5
 	snd.PlaybackSpeed = 1
 	snd.Looped = false
-	snd.RollOffMaxDistance = 150
+	snd.RollOffMaxDistance = 200
 	snd.Parent = root
 	snd:Play()
 
@@ -1041,11 +1071,7 @@ local function RunBla(entity)
 		entity:Pause()
 	end
 
-	if ok and shaker then
-		pcall(function()
-			shaker:Stop()
-		end)
-	end
+
 
 	FadeDestroy(model)
 end
