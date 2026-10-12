@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
--- jk
+-- jppd
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1025,11 +1025,11 @@ local margin = 48
 local maxNodes = 10000  
 local maxTime = 0.8  
 local started = os.clock()  
-local localGoal = goal  
+local localGoal = goal
 
-if dist > 120 then  
-	localGoal = start + full.Unit * 120  
-end  
+if dist > 1000 then
+	localGoal = start + full.Unit * 1000
+end
 
 local pp = model:FindFirstChild("RushNew")
 
