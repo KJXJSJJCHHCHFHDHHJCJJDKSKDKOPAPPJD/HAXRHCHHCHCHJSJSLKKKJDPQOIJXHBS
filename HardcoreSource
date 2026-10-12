@@ -1349,7 +1349,9 @@ task.spawn(function()
 					"Eat bricks and cook the microwave", 
 					"ur fit is so fire 🔥🔥🔥", 
 					"hello ! it me ! pease !", 
-					"BETTER THAN MAYHEM FIGHT ME MIST >:3" 
+					"BETTER THAN MAYHEM FIGHT ME MIST >:3", 
+					"lolmat can i get automatic graphication - freeman", 
+					"The malevolent rug guys" 
 				}
 				local chosenCaption = captionTexts[math.random(#captionTexts)]
 
@@ -1902,4 +1904,4 @@ end
 
 workspace.DescendantAdded:Connect(function(descendant)
 setupSound(descendant)
-end)
+end) 
