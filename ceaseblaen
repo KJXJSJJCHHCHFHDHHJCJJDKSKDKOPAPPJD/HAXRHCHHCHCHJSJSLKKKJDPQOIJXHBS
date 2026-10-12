@@ -54,7 +54,7 @@ local Storage = {
 }
 
 local CONST = {
-	BASE_ENTITY_SPEED = 65,
+	BASE_ENTITY_SPEED = 57,
 	ATTR = {
 		ENTITY = {
 			Running = false,
@@ -221,6 +221,18 @@ local function GetRoomAtPoint(vector3: Vector3): Model?
 	end
 	return
 end
+
+
+local function InRoom(room, pos)
+	local cf, size = room:GetBoundingBox()
+	local p = cf:PointToObjectSpace(pos)
+	local s = size / 2
+
+	return math.abs(p.X) <= s.X
+		and math.abs(p.Y) <= s.Y
+		and math.abs(p.Z) <= s.Z
+end
+
 
 local function FixRoomLights(room: Model)
     local roomEntrance = room:FindFirstChild("RoomEntrance")
@@ -805,9 +817,11 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 
     -- Setup
     local model = entity.Model
-    local config = entity.Config
-    local debug = entity.Debug
-    local resumeFromRoomStart = false
+local config = entity.Config
+local debug = entity.Debug
+local resumeFromRoomStart = false
+
+config.Movement.Speed *= 3
 
     model:SetAttribute("Running", true)
     self.ActiveEntities[#self.ActiveEntities + 1] = entity
@@ -829,6 +843,49 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
     model:PivotTo(spawnPoint.CFrame + Vector3.new(0, config.Entity.HeightOffset, 0))
     model.Parent = workspace
     task.spawn(entity.RunCallback, entity, "OnSpawned")
+
+
+task.spawn(function()
+	local checked = {}
+	local roomNow
+
+	while entity:IsAlive() do
+		local pos = model:GetPivot().Position
+		local room
+
+		for _, v in ipairs(CurrentRooms:GetChildren()) do
+			if not checked[v] and InRoom(v, pos) then
+				room = v
+				break
+			end
+		end
+
+		if room and room ~= roomNow then
+			roomNow = room
+
+			while entity:IsAlive() and room.Parent do
+				if not InRoom(room, model:GetPivot().Position) then
+					checked[room] = true
+					break
+				end
+
+				if RootPart and RootPart.Parent
+					and InRoom(room, RootPart.Position) then
+					config.Movement.Speed = 57
+					checked[room] = true
+					break
+				end
+
+				task.wait()
+			end
+
+			roomNow = nil
+		end
+
+		task.wait()
+	end
+end)
+
 
     -- Tạo Hitbox Parts (OnChargingHitbox & OnCheckingHitbox) gắn vào model
     local chargingHitbox = model:FindFirstChild("OnChargingHitbox") or Instance.new("Part")
