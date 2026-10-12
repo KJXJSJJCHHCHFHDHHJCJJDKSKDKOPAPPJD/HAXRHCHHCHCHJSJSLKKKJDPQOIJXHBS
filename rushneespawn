@@ -1759,13 +1759,15 @@ SetChaseSounds(model, true)
 		while entity:IsAlive() and state.chasing do
 	local dt = RunService.Heartbeat:Wait()
 
-	while entity:IsAlive() and state.ceasePaused do
-		RunService.Heartbeat:Wait()
-	end
+while entity:IsAlive() and state.ceasePaused do
+	RunService.Heartbeat:Wait()
+end
 
-	if not entity:IsAlive() then
-		break
-	end
+if not entity:IsAlive() then
+	break
+end
+
+dt = 0
 
 			char = LocalPlayer.Character
 			hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -1978,7 +1980,9 @@ end
 local pivot = model:GetPivot()
 local now = os.clock()
 local dist = (hrp.Position - pivot.Position).Magnitude
-
+if state.ceasePaused then
+	continue
+end
 if dist > 50 then
 	state.pathChase = true
 elseif dist < 10 then
@@ -2290,7 +2294,12 @@ if not entity:IsAlive() or state.dead then
 end
 
 if not state.ceaseFly then
-	model:SetAttribute("Paused", false)
+	entity:Resume()
+else
+	state.fly = false
+	state.flyAt = os.clock()
+	state.flyDir = nil
+	state.pathSearching = false
 end
 
 state.ceaseFly = false
