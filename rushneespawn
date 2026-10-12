@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
--- lkj
+
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1011,354 +1011,301 @@ end
 
 
 
+fix full hộ
 local function GetFlyPath(model, char, goal)
-	if not model or not model.Parent or not char or not char.Parent then return nil end
-
-	local start = model:GetPivot().Position
-	local full = goal - start
-	local dist = full.Magnitude
-
-	if dist < 0.1 then
-		return {goal}
-	end
-
-	local step = 4
-	local margin = 48
-	local maxStep = 5
-	local maxNodes = 10000
-	local maxTime = 0.8
-	local started = os.clock()
+if not model or not model.Parent then return nil end
+
+local start = model:GetPivot().Position  
+local full = goal - start  
+local dist = full.Magnitude  
+
+if dist < 0.1 then  
+	return {goal}  
+end  
+
+local step = 4  
+local margin = 48  
+local maxNodes = 10000  
+local maxTime = 0.8  
+local started = os.clock()  
+local localGoal = goal  
+
+if dist > 120 then  
+	localGoal = start + full.Unit * 120  
+end  
+
+local pp = model:FindFirstChild("RushNew")
+
+if not pp or not pp:IsA("BasePart") then return nil end
+
+local size = pp.Size / 3
+local box = Vector3.new(
+math.max(size.X * 0.8, 1),
+math.max(size.Y * 0.8, 1),
+math.max(size.Z * 0.8, 1)
+)
+
+local rp = RaycastParams.new()  
+rp.FilterType = Enum.RaycastFilterType.Exclude  
+rp.FilterDescendantsInstances = {model, char}  
+rp.RespectCanCollide = true  
+
+local op = OverlapParams.new()  
+op.FilterType = Enum.RaycastFilterType.Exclude  
+op.FilterDescendantsInstances = {model, char}  
+op.RespectCanCollide = true  
+op.MaxParts = 40  
+
+local function clear(a, b)  
+	local d = b - a  
+	local len = d.Magnitude  
+
+	if len < 0.1 then return true end  
+	if len > 4096 then return false end  
+
+	local dir = d.Unit  
+	local at = a  
 
-	local pp = model:FindFirstChild("RushNew")
-	if not pp or not pp:IsA("BasePart") then return nil end
-
-	local size = pp.Size / 3
-	local box = Vector3.new(
-		math.max(size.X * 0.8, 1),
-		math.max(size.Y * 0.8, 1),
-		math.max(size.Z * 0.8, 1)
-	)
-
-	local rp = RaycastParams.new()
-	rp.FilterType = Enum.RaycastFilterType.Exclude
-	rp.FilterDescendantsInstances = {model, char}
-	rp.RespectCanCollide = true
-
-	local op = OverlapParams.new()
-	op.FilterType = Enum.RaycastFilterType.Exclude
-	op.FilterDescendantsInstances = {model, char}
-	op.RespectCanCollide = true
-	op.MaxParts = 40
-
-	local function ground(p, length)
-		local hit = workspace:Raycast(
-			p + Vector3.new(0, 4, 0),
-			Vector3.new(0, -length, 0),
-			rp
-		)
-
-		return hit and hit.Position.Y or nil
-	end
-
-	local sg = ground(start, 256)
-	if not sg then return nil end
-
-	local offset = start.Y - sg
-
-	local function grounded(p)
-		local gy = ground(p, math.max(offset + maxStep + 10, 16))
-		return gy and math.abs(p.Y - (gy + offset)) <= 3.5, gy
-	end
-
-	local horiz = Vector3.new(goal.X - start.X, 0, goal.Z - start.Z)
-	local localGoal = goal
-
-	if horiz.Magnitude > 120 then
-		local t = 120 / horiz.Magnitude
-		localGoal = start:Lerp(goal, t)
-	end
-
-	local gg = ground(localGoal, 256)
-	if not gg then return nil end
-
-	localGoal = Vector3.new(localGoal.X, gg + offset, localGoal.Z)
-
-	local function clear(a, b)
-		local d = b - a
-		local len = d.Magnitude
-
-		if len < 0.1 then return true end
-		if len > 4096 then return false end
-
-		local dir = d.Unit
-		local at = a
-
-		while (b - at).Magnitude > 0.1 do
-			local amount = math.min((b - at).Magnitude, 128)
-			local delta = dir * amount
-
-			if workspace:Blockcast(CFrame.new(at), box, delta, rp) then
-				return false
-			end
-
-			at += delta
-		end
-
-		return true
-	end
-
-	local function onSurface(a, b)
-		local d = b - a
-		local len = d.Magnitude
-		local n = math.max(1, math.ceil(len / 2))
-		local lastY
+	while (b - at).Magnitude > 0.1 do  
+		local amount = math.min((b - at).Magnitude, 128)  
+		local delta = dir * amount  
 
-		for i = 0, n do
-			local p = a:Lerp(b, i / n)
-			local ok, gy = grounded(p)
+		if workspace:Blockcast(CFrame.new(at), box, delta, rp) then  
+			return false  
+		end  
 
-			if not ok then return false end
-			if lastY and math.abs(gy - lastY) > maxStep + 1 then
-				return false
-			end
+		at += delta  
+	end  
 
-			lastY = gy
-		end
+	return true  
+end  
+
+local function free(p)  
+	return #workspace:GetPartBoundsInBox(CFrame.new(p), box, op) == 0  
+end  
+
+local function penalty(p)  
+	local parts = workspace:GetPartBoundsInBox(  
+		CFrame.new(p),  
+		box + Vector3.new(4, 4, 4),  
+		op  
+	)  
+
+	return math.min(#parts, 10) * 2  
+end  
+
+if clear(start, localGoal) then  
+	return {localGoal}  
+end  
+
+local minX = math.floor((math.min(start.X, localGoal.X) - margin - start.X) / step)  
+local maxX = math.ceil((math.max(start.X, localGoal.X) + margin - start.X) / step)  
+local minY = math.floor((math.min(start.Y, localGoal.Y) - margin - start.Y) / step)  
+local maxY = math.ceil((math.max(start.Y, localGoal.Y) + margin - start.Y) / step)  
+local minZ = math.floor((math.min(start.Z, localGoal.Z) - margin - start.Z) / step)  
+local maxZ = math.ceil((math.max(start.Z, localGoal.Z) + margin - start.Z) / step)  
+
+local function key(x, y, z)  
+	return x .. "," .. y .. "," .. z  
+end  
+
+local function pos(x, y, z)  
+	return start + Vector3.new(x * step, y * step, z * step)  
+end  
+
+local function inside(x, y, z)  
+	return x >= minX and x <= maxX  
+		and y >= minY and y <= maxY  
+		and z >= minZ and z <= maxZ  
+end  
+
+local heap, cells, prev, costs, closed, valid, penalties = {}, {}, {}, {}, {}, {}, {}  
+local count = 0  
 
-		return true
-	end
+local function push(v)  
+	local i = #heap + 1  
 
-	local function free(p)
-		return #workspace:GetPartBoundsInBox(CFrame.new(p), box, op) == 0
-	end
+	while i > 1 do  
+		local p = math.floor(i / 2)  
+		if heap[p].f <= v.f then break end  
+		heap[i] = heap[p]  
+		i = p  
+	end  
 
-	local function penalty(p)
-		local parts = workspace:GetPartBoundsInBox(
-			CFrame.new(p),
-			box + Vector3.new(4, 4, 4),
-			op
-		)
-
-		return math.min(#parts, 10) * 2
-	end
-
-	if clear(start, localGoal) and onSurface(start, localGoal) then
-		return {localGoal}
-	end
-
-	local minX = math.floor((math.min(start.X, localGoal.X) - margin - start.X) / step)
-	local maxX = math.ceil((math.max(start.X, localGoal.X) + margin - start.X) / step)
-	local minY = math.floor((math.min(start.Y, localGoal.Y) - margin - start.Y) / step)
-	local maxY = math.ceil((math.max(start.Y, localGoal.Y) + margin - start.Y) / step)
-	local minZ = math.floor((math.min(start.Z, localGoal.Z) - margin - start.Z) / step)
-	local maxZ = math.ceil((math.max(start.Z, localGoal.Z) + margin - start.Z) / step)
+	heap[i] = v  
+end  
+
+local function pop()  
+	if #heap == 0 then return nil end  
 
-	local function key(x, y, z)
-		return x .. "," .. y .. "," .. z
-	end
+	local first = heap[1]  
+	local last = table.remove(heap)  
 
-	local function pos(x, y, z)
-		return start + Vector3.new(x * step, y * step, z * step)
-	end
+	if #heap > 0 then  
+		local i = 1  
 
-	local function inside(x, y, z)
-		return x >= minX and x <= maxX
-			and y >= minY and y <= maxY
-			and z >= minZ and z <= maxZ
-	end
-
-	local heap, cells, prev, costs, closed, valid, penalties = {}, {}, {}, {}, {}, {}, {}
-	local count = 0
-
-	local function push(v)
-		local i = #heap + 1
-
-		while i > 1 do
-			local p = math.floor(i / 2)
-			if heap[p].f <= v.f then break end
-			heap[i] = heap[p]
-			i = p
-		end
-
-		heap[i] = v
-	end
-
-	local function pop()
-		if #heap == 0 then return nil end
-
-		local first = heap[1]
-		local last = table.remove(heap)
-
-		if #heap > 0 then
-			local i = 1
-
-			while true do
-				local l = i * 2
-				local r = l + 1
-
-				if l > #heap then break end
-
-				local c = l
-				if r <= #heap and heap[r].f < heap[l].f then
-					c = r
-				end
-
-				if heap[c].f >= last.f then break end
-
-				heap[i] = heap[c]
-				i = c
-			end
-
-			heap[i] = last
-		end
-
-		return first
-	end
-
-	local function heuristic(p)
-		return (localGoal - p).Magnitude
-	end
-
-	local sk = key(0, 0, 0)
-	cells[sk] = {x = 0, y = 0, z = 0}
-	costs[sk] = 0
-
-	push({
-		x = 0, y = 0, z = 0,
-		k = sk,
-		g = 0,
-		f = heuristic(start)
-	})
-
-	local offsets = {}
-
-	for x = -1, 1 do
-		for y = -1, 1 do
-			for z = -1, 1 do
-				if x ~= 0 or y ~= 0 or z ~= 0 then
-					offsets[#offsets + 1] = {
-						x, y, z,
-						math.sqrt(x*x + y*y + z*z)
-					}
-				end
-			end
-		end
-	end
-
-	local found
-
-	while #heap > 0 and count < maxNodes do
-		if os.clock() - started > maxTime then break end
-
-		local cur = pop()
-
-		if cur and not closed[cur.k] and cur.g == costs[cur.k] then
-			closed[cur.k] = true
-			count += 1
-
-			local p = pos(cur.x, cur.y, cur.z)
-
-			if (p - localGoal).Magnitude <= step * 1.5
-				and clear(p, localGoal)
-				and onSurface(p, localGoal) then
-				found = cur.k
-				break
-			end
-
-			for _, o in ipairs(offsets) do
-				local x = cur.x + o[1]
-				local y = cur.y + o[2]
-				local z = cur.z + o[3]
-
-				if inside(x, y, z) then
-					local k = key(x, y, z)
-
-					if not closed[k] then
-						local np = pos(x, y, z)
-
-						if math.abs(np.Y - p.Y) <= maxStep then
-							if valid[k] == nil then
-								local ok = grounded(np)
-								valid[k] = ok and free(np)
-							end
-
-							if valid[k] and clear(p, np) and onSurface(p, np) then
-								if penalties[k] == nil then
-									penalties[k] = penalty(np)
-								end
-
-								local ng = cur.g + step * o[4] + penalties[k]
-
-								if costs[k] == nil or ng < costs[k] then
-									cells[k] = {x = x, y = y, z = z}
-									costs[k] = ng
-									prev[k] = cur.k
-
-									push({
-										x = x, y = y, z = z,
-										k = k,
-										g = ng,
-										f = ng + heuristic(np)
-									})
-								end
-							end
-						end
-					end
-				end
-			end
-
-			if count % 100 == 0 then
-				task.wait()
-
-				if not model.Parent or not char.Parent then
-					return nil
-				end
-			end
-		end
-	end
-
-	if not found then return nil end
-
-	local rev = {}
-	local k = found
-
-	while k and k ~= sk do
-		local c = cells[k]
-		rev[#rev + 1] = pos(c.x, c.y, c.z)
-		k = prev[k]
-	end
-
-	local raw = {}
-
-	for i = #rev, 1, -1 do
-		raw[#raw + 1] = rev[i]
-	end
-
-	raw[#raw + 1] = localGoal
-
-	local smooth = {}
-	local at = start
-	local i = 1
-
-	while i <= #raw do
-		local best = i
-
-		for j = #raw, i, -1 do
-			if clear(at, raw[j]) and onSurface(at, raw[j]) then
-				best = j
-				break
-			end
-		end
-
-		smooth[#smooth + 1] = raw[best]
-		at = raw[best]
-		i = best + 1
-	end
-
-	return smooth
+		while true do  
+			local l = i * 2  
+			local r = l + 1  
+
+			if l > #heap then break end  
+
+			local c = l  
+			if r <= #heap and heap[r].f < heap[l].f then  
+				c = r  
+			end  
+
+			if heap[c].f >= last.f then break end  
+
+			heap[i] = heap[c]  
+			i = c  
+		end  
+
+		heap[i] = last  
+	end  
+
+	return first  
+end  
+
+local function heuristic(p)  
+	return (localGoal - p).Magnitude  
+end  
+
+local sk = key(0, 0, 0)  
+cells[sk] = {x = 0, y = 0, z = 0}  
+costs[sk] = 0  
+
+push({  
+	x = 0, y = 0, z = 0,  
+	k = sk,  
+	g = 0,  
+	f = heuristic(start)  
+})  
+
+local offsets = {}  
+
+for x = -1, 1 do  
+	for y = -1, 1 do  
+		for z = -1, 1 do  
+			if x ~= 0 or y ~= 0 or z ~= 0 then  
+				offsets[#offsets + 1] = {  
+					x, y, z,  
+					math.sqrt(x*x + y*y + z*z)  
+				}  
+			end  
+		end  
+	end  
+end  
+
+local found  
+
+while #heap > 0 and count < maxNodes do  
+	if os.clock() - started > maxTime then break end  
+
+	local cur = pop()  
+
+	if cur and not closed[cur.k] and cur.g == costs[cur.k] then  
+		closed[cur.k] = true  
+		count += 1  
+
+		local p = pos(cur.x, cur.y, cur.z)  
+
+		if (p - localGoal).Magnitude <= step * 1.5  
+			and clear(p, localGoal) then  
+			found = cur.k  
+			break  
+		end  
+
+		for _, o in ipairs(offsets) do  
+			local x = cur.x + o[1]  
+			local y = cur.y + o[2]  
+			local z = cur.z + o[3]  
+
+			if inside(x, y, z) then  
+				local k = key(x, y, z)  
+
+				if not closed[k] then  
+					local np = pos(x, y, z)  
+
+					if valid[k] == nil then  
+						valid[k] = free(np)  
+					end  
+
+					if valid[k] and clear(p, np) then  
+						if penalties[k] == nil then  
+							penalties[k] = penalty(np)  
+						end  
+
+						local ng = cur.g + step * o[4] + penalties[k]  
+
+						if costs[k] == nil or ng < costs[k] then  
+							cells[k] = {x = x, y = y, z = z}  
+							costs[k] = ng  
+							prev[k] = cur.k  
+
+							push({  
+								x = x, y = y, z = z,  
+								k = k,  
+								g = ng,  
+								f = ng + heuristic(np)  
+							})  
+						end  
+					end  
+				end  
+			end  
+		end  
+
+		if count % 100 == 0 then  
+			task.wait()  
+
+			if not model.Parent or not char.Parent then  
+				return nil  
+			end  
+		end  
+	end  
+end  
+
+if not found then return nil end  
+
+local rev = {}  
+local k = found  
+
+while k and k ~= sk do  
+	local c = cells[k]  
+	rev[#rev + 1] = pos(c.x, c.y, c.z)  
+	k = prev[k]  
+end  
+
+local raw = {}  
+
+for i = #rev, 1, -1 do  
+	raw[#raw + 1] = rev[i]  
+end  
+
+raw[#raw + 1] = localGoal  
+
+local smooth = {}  
+local at = start  
+local i = 1  
+
+while i <= #raw do  
+	local best = i  
+
+	for j = #raw, i, -1 do  
+		if clear(at, raw[j]) then  
+			best = j  
+			break  
+		end  
+	end  
+
+	smooth[#smooth + 1] = raw[best]  
+	at = raw[best]  
+	i = best + 1  
+end  
+
+return smooth
+
 end
-
-
 
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
