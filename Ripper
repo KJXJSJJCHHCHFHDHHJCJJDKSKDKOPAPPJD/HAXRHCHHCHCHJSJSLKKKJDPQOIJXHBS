@@ -310,6 +310,7 @@ entity:SetCallback("OnStartMoving", function()
 	print("Entity has started moving")
 	
 	task.spawn(function() 
+repeat task.wait() until getgenv().CeaseStop == nil or getgenv().CeaseStop == false
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iccdjkkkkskskhdgdgegvbfbgncjjdudejdjvi/REBLAHARDCOREDI/refs/heads/main/Flingingstuff"))() 
 	end) 
 	
