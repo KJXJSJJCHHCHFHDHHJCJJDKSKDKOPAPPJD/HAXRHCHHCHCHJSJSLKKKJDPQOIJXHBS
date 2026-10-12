@@ -11,7 +11,7 @@
 ]]--
 
 if getgenv().Cepawner then return getgenv().Cepawner end
-
+-- jcj
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 
 -- \\ Services // --
@@ -594,25 +594,30 @@ local function GetPathfindNodesBlitz(config: any): ({BasePart}, {BasePart})
 	return nodesToCurrent, nodesToEnd
 end
 
+
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local reached = false
-	local connection; connection = RunService.Stepped:Connect(function(_, step)
+	local conn
+
+	conn = RunService.Stepped:Connect(function(_, dt)
 		if not model:GetAttribute("Paused") then
 			local pivot = model:GetPivot()
-			local difference = (cframe.Position - pivot.Position)
-			local unit = difference.Unit
-			local magnitude = difference.Magnitude
+			local diff = cframe.Position - pivot.Position
+			local mag = diff.Magnitude
 
-			if magnitude > 0.1 then
-				model:PivotTo(pivot + unit * math.min(step * speed, magnitude))
+			if mag > 0.1 then
+				local spd = model:GetAttribute("MoveSpeed") or speed
+				model:PivotTo(pivot + diff.Unit * math.min(dt * spd, mag))
 			else
-				connection:Disconnect()
+				conn:Disconnect()
 				reached = true
 			end
 		end
 	end)
+
 	repeat RunService.RenderStepped:Wait() until reached
 end
+
 
 local function ReplayCurrentRoom(entity, currentIndex, pathfindNodes)
 	local model = entity.Model
@@ -822,6 +827,7 @@ local debug = entity.Debug
 local resumeFromRoomStart = false
 
 config.Movement.Speed *= 3
+model:SetAttribute("MoveSpeed", config.Movement.Speed)
 
     model:SetAttribute("Running", true)
     self.ActiveEntities[#self.ActiveEntities + 1] = entity
@@ -872,6 +878,7 @@ task.spawn(function()
 				if RootPart and RootPart.Parent
 					and InRoom(room, RootPart.Position) then
 					config.Movement.Speed = 57
+model:SetAttribute("MoveSpeed", 57)
 					checked[room] = true
 					break
 				end
