@@ -1,3 +1,6 @@
+
+local paused = false
+
 local function LoadModel(file, url)
 	if not isfile(file) then
 		writefile(file, game:HttpGet(url))
@@ -24,19 +27,20 @@ local shakeMultiplier = 1
 
 local function StartShake()
 	if shaking then return end
-
 	shaking = true
 
 	shakeThread = task.spawn(function()
 		while shaking do
-			camShake:ShakeOnce(
-				2 * shakeMultiplier,
-				2,
-				0.05,
-				0.1,
-				0,
-				0.8 * shakeMultiplier
-			)
+			if not paused then
+				camShake:ShakeOnce(
+					2 * shakeMultiplier,
+					2,
+					0.05,
+					0.1,
+					0,
+					0.8 * shakeMultiplier
+				)
+			end
 
 			task.wait(0.2)
 		end
@@ -151,9 +155,9 @@ local function FlickerRoomLoop(room)
     task.spawn(function()
         while getgenv().IsAllRoomsFlickering and room and room.Parent do
             if room:IsA("Model") then
-                Module_Events.flicker(room, 1)
+                Module_Events.flicker(room, 2)
             end
-            task.wait(0.7) -- Thời gian chờ giữa các lần chớp của phòng đó
+            task.wait(1.7) -- Thời gian chờ giữa các lần chớp của phòng đó
         end
     end)
 end
@@ -185,6 +189,9 @@ print("Đã bật hệ thống chớp đèn tự động cho tất cả phòng (
 
 local Speed = 12
 local shuold = true
+
+local checkingStop = true
+local lordSpeed = 1
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -280,7 +287,7 @@ LordPitch.Parent = Lord
 local wallDetectorCount = 0
 
 local function ChangeLordSound()
-	if not Lord then
+	if not Lord and paused then
 		return
 	end
 
@@ -362,14 +369,117 @@ local Deerlord = LoadModel(
 local s = Deerlord
 s.Parent = workspace
 s.Name = "DeerGod" 
+
+
 Teleport.Parent = s.RushNew
 
 local death = true
 local attacking = false
 local wallDetectorRunning = true
 local chasing = true
+lordSpeed = Lord and Lord.PlaybackSpeed or 1
+
+
+local soundSpeeds = {}
+local soundTweens = {}
+
+local function PauseSounds(pause)
+	for _, v in ipairs(s:GetDescendants()) do
+		if v:IsA("Sound") then
+			if soundSpeeds[v] == nil then
+				soundSpeeds[v] = v.PlaybackSpeed
+			end
+
+			if soundTweens[v] then
+				soundTweens[v]:Cancel()
+			end
+
+			local speed = pause and 0 or soundSpeeds[v]
+
+			local tween = TweenService:Create(
+				v,
+				TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+				{PlaybackSpeed = speed}
+			)
+
+			soundTweens[v] = tween
+			tween:Play()
+		end
+	end
+end
+
+task.spawn(function()
+	local wasPaused = false
+
+	while checkingStop and death and s and s.Parent do
+		local pause = getgenv().CeaseStop == true
+
+		if pause ~= wasPaused then
+			wasPaused = pause
+			PauseSounds(pause)
+		end
+
+		task.wait(0.1)
+	end
+end)
+
+s.DescendantAdded:Connect(function(v)
+	if v:IsA("Sound") then
+		soundSpeeds[v] = v.PlaybackSpeed
+
+		if getgenv().CeaseStop == true then
+			v.PlaybackSpeed = 0
+		end
+	end
+end)
+
+
+
+local function TweenLord(speed)
+	if not Lord or not Lord.Parent then return end
+
+	local tween = TweenService:Create(
+		Lord,
+		TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+		{PlaybackSpeed = speed}
+	)
+
+	tween:Play()
+	tween.Completed:Wait()
+end
+
+task.spawn(function()
+	while checkingStop and s == nil do
+		task.wait()
+	end
+
+	while checkingStop and death do
+		if getgenv().CeaseStop == true and not paused then
+			paused = true
+			Speed = 0
+
+			TweenLord(0)
+
+			repeat
+				task.wait(0.1)
+			until not checkingStop or not death
+				or getgenv().CeaseStop == false
+				or getgenv().CeaseStop == nil
+
+			if not checkingStop or not death then break end
+
+			TweenLord(lordSpeed)
+
+			Speed = 12
+			paused = false
+		end
+
+		task.wait(0.1)
+	end
+end)
 
 local function CreateWallDetector()
+if paused then return end
 	local currentCharacter = player.Character
 	if not currentCharacter or not currentCharacter.Parent then
 		return
@@ -652,16 +762,18 @@ task.spawn(function()
 			break
 		end
 
-		CreateWallDetector()
+		if not paused then
+			CreateWallDetector()
+		end
 	end
 end)
 
 -- Vòng lặp di chuyển đuổi theo Player
 local connection
 local function followPlayer(dt)
-	if not chasing then
-		return
-	end
+	if paused or not chasing then
+	return
+end
 
 	local currentHrp = Character:FindFirstChild("HumanoidRootPart")
 	if not currentHrp or not entity then
@@ -725,7 +837,13 @@ end
 
 -- Vòng lặp tấn công
 task.spawn(function()
-	while death and task.wait(0.1) do
+	while death do
+	task.wait(0.1)
+
+	if paused then
+		continue
+	end
+	
 		if entity and entity.Parent and Character and Character.Parent then
 			local currentHrp = Character:FindFirstChild("HumanoidRootPart")
 			local hum = Character:FindFirstChildOfClass("Humanoid")
@@ -734,7 +852,7 @@ task.spawn(function()
 				local distance = (currentHrp.Position - entity.Position).Magnitude
 
 				-- Kiểm tra khoảng cách va chạm (6 stud)
-				if distance <= 3 then
+				if not paused and distance <= 3 then
 					if not Character:GetAttribute("Hiding") then
 						if not attacking then
 							attacking = true
@@ -780,8 +898,15 @@ task.spawn(function()
 	"rbxassetid://15813726463",	"rbxassetid://15813726313" }
 	
 	while shuold and screenGui and screenGui.Parent do
+	if paused then
+		task.wait(0.1)
+		continue
+	end
+	
 		for _, img in ipairs(jumpscareImages) do
 			if not shuold or not screenGui.Parent then break end
+if paused then break end
+
 			imageLabel.Image = img
 			imageLabel.ImageTransparency = math.random(80, 100) / 100
 			task.wait(0.06)
@@ -798,8 +923,10 @@ task.spawn(function()
 }
 
 	while shuold do
-		task.wait(math.random(7, 10))
-		if not shuold then break end
+	task.wait(math.random(7, 10))
+
+	if not shuold then break end
+	if paused then continue end
 
 		local chosen = dialogs[math.random(#dialogs)]
 
