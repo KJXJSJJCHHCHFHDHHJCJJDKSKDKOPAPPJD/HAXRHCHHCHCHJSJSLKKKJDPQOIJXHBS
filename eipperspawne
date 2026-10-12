@@ -1,7 +1,7 @@
 --[[ __ __ _ _ ______ _ _ _ _____ __ _____ \ \ / / (_) ( ) | ____| | | (_) | / ____| \ \ / /__ \ \ \ / / _ _ __ ___ ___ _|/ ___ | |__ _ __ | |_ _| |_ _ _ | (___ _ __ __ ___ ___ __ ___ _ __ \ \ / / ) | \ \/ / | | | '_ \| \ \/ / | | | / __| | __| | '_ \| __| | __| | | | \___ \| '_ \ / _` \ \ /\ / / '_ \ / _ \ '__| \ \/ / / / \ /| |_| | | | | |> <| |_| | \__ \ | |____| | | | |_| | |_| |_| | ____) | |_) | (_| |\ V V /| | | | __/ | \ / / /_ \/ \__, |_| |_|_/_/\_\\__,_| |___/ |______|_| |_|\__|_|\__|\__, | |_____/| .__/ \__,_| \_/\_/ |_| |_|\___|_| \/ |____| __/ | __/ | | | |___/ |___/ |_| ]]--
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
--- jx
+-- jxk
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
 local stopHitbox = false
 -- \\ Services // --
@@ -832,6 +832,225 @@ end
 	}
 end
 
+
+local function FadeDestroy(model)
+	if not model or not model.Parent then return end
+
+	local info = TweenInfo.new(3, Enum.EasingStyle.Linear)
+
+	for _, v in ipairs(model:GetDescendants()) do
+		if v:IsA("Sound") then
+			pcall(function()
+				TweenService:Create(v, info, {PlaybackSpeed = 0}):Play()
+			end)
+		elseif v:IsA("ParticleEmitter") then
+			v.Enabled = false
+			pcall(function()
+				TweenService:Create(v, info, {Rate = 0}):Play()
+			end)
+		elseif v:IsA("Beam") then
+			pcall(function()
+				TweenService:Create(v, info, {
+					Brightness = 0,
+					Transparency = NumberSequence.new(1)
+				}):Play()
+			end)
+		elseif v:IsA("Trail") then
+			pcall(function()
+				TweenService:Create(v, info, {
+					Transparency = NumberSequence.new(1)
+				}):Play()
+			end)
+		elseif v:IsA("PointLight") or v:IsA("SpotLight") or v:IsA("SurfaceLight") then
+			pcall(function()
+				TweenService:Create(v, info, {Brightness = 0}):Play()
+			end)
+		end
+	end
+
+	task.delay(3, function()
+		if model.Parent then
+			model:Destroy()
+		end
+	end)
+end
+
+local function GetGitSound(url, name)
+	if not isfile(name .. ".mp3") then
+		writefile(name .. ".mp3", game:HttpGet(url))
+	end
+
+	local snd = Instance.new("Sound")
+	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
+	return snd
+end
+
+local function TweenPivot(model, target, info)
+	if not model or not model.Parent then return end
+
+	local val = Instance.new("CFrameValue")
+	val.Value = model:GetPivot()
+
+	local conn = val:GetPropertyChangedSignal("Value"):Connect(function()
+		if model.Parent then
+			model:PivotTo(val.Value)
+		end
+	end)
+
+	local tw = TweenService:Create(val, info, {Value = target})
+	tw:Play()
+	tw.Completed:Wait()
+
+	conn:Disconnect()
+	val:Destroy()
+end
+
+local function RunBla(entity)
+	local model = entity.Model
+	if not model or not model.Parent then return end
+
+	local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+	if not room then return end
+
+	local root = model:FindFirstChild("HumanoidRootPart")
+		or model.PrimaryPart
+		or model:FindFirstChildWhichIsA("BasePart", true)
+
+	local doorModel = room:FindFirstChild("Door")
+	if not root or not doorModel then return end
+
+	local chance = 2
+	for _, v in ipairs(room:GetDescendants()) do
+		if v:IsA("BasePart") and v.Name == "KeyHitbox" then
+			chance = 1
+			break
+		end
+	end
+
+	if chance == 1 then
+		task.wait(2)
+		FadeDestroy(model)
+		return
+	end
+
+	local snd = GetGitSound(
+		"https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/XRecorder_Edited_20260810_01.mp3?raw=true",
+		"jjcjfjjc"
+	)
+
+	snd.Name = "BlaSound"
+	snd.Volume = 3.5
+	snd.PlaybackSpeed = 1
+	snd.Looped = false
+	snd.RollOffMaxDistance = 150
+	snd.Parent = root
+	snd:Play()
+
+	local original = model:GetPivot()
+
+	TweenPivot(
+		model,
+		original * CFrame.new(0, 0, 25),
+		TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	)
+
+	task.spawn(function()
+		if model.Parent then
+			TweenPivot(
+				model,
+				original,
+				TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			)
+		end
+	end)
+
+	task.wait(0.45)
+
+	if not model.Parent then return end
+
+	local ok, shaker = pcall(function()
+		local CameraShaker = require(ReplicatedStorage.CameraShaker)
+		local camera = workspace.CurrentCamera
+		local s = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cf)
+			camera.CFrame = camera.CFrame * cf
+		end)
+		s:Start()
+		s:ShakeOnce(15, 11.5, 0.1, 2, 15, 0.5)
+		return s
+	end)
+
+	local doorSound = root:FindFirstChild("DoorOpen1")
+	if doorSound and doorSound:IsA("Sound") then
+		doorSound.Volume = 5
+		doorSound:Play()
+	end
+
+	local function HideHidden(obj)
+		for _, v in ipairs(obj:GetDescendants()) do
+			if v:IsA("BasePart") and v.Name == "Hidden" then
+				v.Transparency = 1
+			end
+		end
+
+		obj.DescendantAdded:Connect(function(v)
+			if v:IsA("BasePart") and v.Name == "Hidden" then
+				v.Transparency = 1
+			end
+		end)
+	end
+
+	HideHidden(doorModel)
+
+	local clone = doorModel:Clone()
+	clone.Name = "DoorClone"
+	clone.Parent = doorModel.Parent
+
+	local cloneDoor
+	for _, v in ipairs(clone:GetDescendants()) do
+		if v:IsA("MeshPart") and v.Name == "Door" then
+			cloneDoor = v
+			break
+		end
+	end
+
+	if cloneDoor then
+		cloneDoor.CFrame = cloneDoor.CFrame
+			* CFrame.Angles(math.rad(-90), 0, 0)
+			* CFrame.new(0, 7, -3.7)
+	else
+		clone:Destroy()
+	end
+
+	for _, v in ipairs(doorModel:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = 1
+		elseif v:IsA("SurfaceGui") and v.Name == "Sign" then
+			v:Destroy()
+		elseif v:IsA("Sound") then
+			v.Volume = 0
+		end
+	end
+
+	if clone.Parent then
+		HideHidden(clone)
+	end
+
+	snd.Ended:Wait()
+
+	if entity:IsAlive() then
+		entity:Pause()
+	end
+
+	if ok and shaker then
+		pcall(function()
+			shaker:Stop()
+		end)
+	end
+
+	FadeDestroy(model)
+end
+
+
 Module.Run = function(self, entity: any, copyEntity: boolean)
 	if copyEntity == true then
 		self:Run(CloneTable(entity), false)
@@ -888,7 +1107,7 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 	-- Loop kiểm tra hitbox và tương tác với player
 	task.spawn(function()
 		while entity:IsAlive() and task.wait() do
-			if model:GetAttribute("Paused") or model:GetAttribute("HitboxTriggered") or model:GetAttribute("CeasePaused") then continue end
+			if model:GetAttribute("Paused") or model:GetAttribute("HitboxTriggered") or model:GetAttribute("CeasePaused") or model:GetAttribute("RoomExitReached") then continue end
 			
 			local origin = model:GetPivot().Position
 			local charOrigin = RootPart.Position
@@ -984,41 +1203,33 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 local stopCeaseCheck
 
 task.spawn(function()
-	local typ = config.Rebounding.Type:upper()
-	local nodes
+	local room = GetCurrentRoom(false)
+	if not room then return end
 
-	if typ == "AMBUSH" then
-		nodes = GetPathfindNodesAmbush(config)
-	elseif typ == "BLITZ" then
-		nodes = GetPathfindNodesBlitz(config)
-	end
-
-	if not nodes then return end
+	local nodes = GetNodesFromRoom(room, false)
+	if #nodes == 0 then return end
 
 	stopCeaseCheck = CeaseCheck(entity)
 
-	for _, n in next, nodes do
+	for i, n in ipairs(nodes) do
 		if model:GetAttribute("HitboxTriggered") then break end
-
-		local room = n.Parent
-		if room and room.Name == "PathfindNodes" then
-			room = room.Parent
-		end
-
-		local exit = room and room:FindFirstChild("RoomExit")
-		local latest = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+		if not model.Parent then break end
 
 		local cf = n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
 		EntityMoveTo(model, cf, config.Movement.Speed)
 
 		if model:GetAttribute("HitboxTriggered") then break end
+		if not model.Parent then break end
 
 		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
 
-		if exit and n.Name == exit.Name and room == latest then
-			entity:Pause()
-			break
-		end
+		if i == #nodes then
+	model:SetAttribute("RoomExitReached", true)
+	model:SetAttribute("CeasePaused", true)
+	entity:Pause()
+	RunBla(entity)
+	break
+end
 	end
 
 	if stopCeaseCheck then
