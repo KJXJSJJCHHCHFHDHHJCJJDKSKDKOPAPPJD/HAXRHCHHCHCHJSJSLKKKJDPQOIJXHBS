@@ -8,7 +8,7 @@
              __/ |                                                   __/ |        | |                                                   
             |___/                                                   |___/         |_|
 ]]--
-
+-- jcj
 local function GetGitSound(GithubSnd, SoundName)
 			local url = GithubSnd
 			if not isfile(SoundName .. ".mp3") then
@@ -1009,9 +1009,6 @@ local function FlingNearby(model)
 	end
 end
 
-
-
-fix full hộ
 local function GetFlyPath(model, char, goal)
 if not model or not model.Parent then return nil end
 
