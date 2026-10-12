@@ -1127,7 +1127,13 @@ if hit then
 
 	task.spawn(function()
 		while entity:IsAlive() do
-			local char = LocalPlayer.Character
+	if getgenv().CeaseStop == true or model:GetAttribute("Paused") then
+		task.wait(0.05)
+		continue
+	end
+
+	local char = LocalPlayer.Character
+	
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
 			local rp = char and (char.PrimaryPart or char:FindFirstChild("HumanoidRootPart"))
 
@@ -1162,6 +1168,12 @@ end
 			if not valid then
 				break
 			end
+			
+			if getgenv().CeaseStop == true or model:GetAttribute("Paused") then
+	snd:Stop()
+	task.wait(0.05)
+	continue
+end
 
 			if not snd.IsPlaying then
 				snd.TimePosition = 0
@@ -1175,9 +1187,9 @@ end
 
 		snd:Stop()
 
-		if entity:IsAlive() then
-			model:SetAttribute("Paused", false)
-		end
+		if entity:IsAlive() and getgenv().CeaseStop ~= true then
+	model:SetAttribute("Paused", false)
+end
 	end)
 end
 
