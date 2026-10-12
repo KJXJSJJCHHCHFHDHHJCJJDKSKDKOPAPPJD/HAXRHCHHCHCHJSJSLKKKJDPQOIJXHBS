@@ -1010,8 +1010,9 @@ local function FlingNearby(model)
 end
 
 
+
 local function GetFlyPath(model, char, goal)
-	if not model or not model.Parent then return nil end
+	if not model or not model.Parent or not char or not char.Parent then return nil end
 
 	local start = model:GetPivot().Position
 	local full = goal - start
@@ -1023,24 +1024,20 @@ local function GetFlyPath(model, char, goal)
 
 	local step = 4
 	local margin = 48
+	local maxStep = 5
 	local maxNodes = 10000
 	local maxTime = 0.8
 	local started = os.clock()
-	local localGoal = goal
-
-	if dist > 120 then
-		localGoal = start + full.Unit * 120
-	end
 
 	local pp = model:FindFirstChild("RushNew")
-if not pp or not pp:IsA("BasePart") then return nil end
+	if not pp or not pp:IsA("BasePart") then return nil end
 
-local size = pp.Size / 3
-local box = Vector3.new(
-	math.max(size.X * 0.8, 1),
-	math.max(size.Y * 0.8, 1),
-	math.max(size.Z * 0.8, 1)
-)
+	local size = pp.Size / 3
+	local box = Vector3.new(
+		math.max(size.X * 0.8, 1),
+		math.max(size.Y * 0.8, 1),
+		math.max(size.Z * 0.8, 1)
+	)
 
 	local rp = RaycastParams.new()
 	rp.FilterType = Enum.RaycastFilterType.Exclude
@@ -1052,6 +1049,39 @@ local box = Vector3.new(
 	op.FilterDescendantsInstances = {model, char}
 	op.RespectCanCollide = true
 	op.MaxParts = 40
+
+	local function ground(p, length)
+		local hit = workspace:Raycast(
+			p + Vector3.new(0, 4, 0),
+			Vector3.new(0, -length, 0),
+			rp
+		)
+
+		return hit and hit.Position.Y or nil
+	end
+
+	local sg = ground(start, 256)
+	if not sg then return nil end
+
+	local offset = start.Y - sg
+
+	local function grounded(p)
+		local gy = ground(p, math.max(offset + maxStep + 10, 16))
+		return gy and math.abs(p.Y - (gy + offset)) <= 3.5, gy
+	end
+
+	local horiz = Vector3.new(goal.X - start.X, 0, goal.Z - start.Z)
+	local localGoal = goal
+
+	if horiz.Magnitude > 120 then
+		local t = 120 / horiz.Magnitude
+		localGoal = start:Lerp(goal, t)
+	end
+
+	local gg = ground(localGoal, 256)
+	if not gg then return nil end
+
+	localGoal = Vector3.new(localGoal.X, gg + offset, localGoal.Z)
 
 	local function clear(a, b)
 		local d = b - a
@@ -1077,6 +1107,27 @@ local box = Vector3.new(
 		return true
 	end
 
+	local function onSurface(a, b)
+		local d = b - a
+		local len = d.Magnitude
+		local n = math.max(1, math.ceil(len / 2))
+		local lastY
+
+		for i = 0, n do
+			local p = a:Lerp(b, i / n)
+			local ok, gy = grounded(p)
+
+			if not ok then return false end
+			if lastY and math.abs(gy - lastY) > maxStep + 1 then
+				return false
+			end
+
+			lastY = gy
+		end
+
+		return true
+	end
+
 	local function free(p)
 		return #workspace:GetPartBoundsInBox(CFrame.new(p), box, op) == 0
 	end
@@ -1091,7 +1142,7 @@ local box = Vector3.new(
 		return math.min(#parts, 10) * 2
 	end
 
-	if clear(start, localGoal) then
+	if clear(start, localGoal) and onSurface(start, localGoal) then
 		return {localGoal}
 	end
 
@@ -1208,7 +1259,8 @@ local box = Vector3.new(
 			local p = pos(cur.x, cur.y, cur.z)
 
 			if (p - localGoal).Magnitude <= step * 1.5
-				and clear(p, localGoal) then
+				and clear(p, localGoal)
+				and onSurface(p, localGoal) then
 				found = cur.k
 				break
 			end
@@ -1224,28 +1276,31 @@ local box = Vector3.new(
 					if not closed[k] then
 						local np = pos(x, y, z)
 
-						if valid[k] == nil then
-							valid[k] = free(np)
-						end
-
-						if valid[k] and clear(p, np) then
-							if penalties[k] == nil then
-								penalties[k] = penalty(np)
+						if math.abs(np.Y - p.Y) <= maxStep then
+							if valid[k] == nil then
+								local ok = grounded(np)
+								valid[k] = ok and free(np)
 							end
 
-							local ng = cur.g + step * o[4] + penalties[k]
+							if valid[k] and clear(p, np) and onSurface(p, np) then
+								if penalties[k] == nil then
+									penalties[k] = penalty(np)
+								end
 
-							if costs[k] == nil or ng < costs[k] then
-								cells[k] = {x = x, y = y, z = z}
-								costs[k] = ng
-								prev[k] = cur.k
+								local ng = cur.g + step * o[4] + penalties[k]
 
-								push({
-									x = x, y = y, z = z,
-									k = k,
-									g = ng,
-									f = ng + heuristic(np)
-								})
+								if costs[k] == nil or ng < costs[k] then
+									cells[k] = {x = x, y = y, z = z}
+									costs[k] = ng
+									prev[k] = cur.k
+
+									push({
+										x = x, y = y, z = z,
+										k = k,
+										g = ng,
+										f = ng + heuristic(np)
+									})
+								end
 							end
 						end
 					end
@@ -1289,7 +1344,7 @@ local box = Vector3.new(
 		local best = i
 
 		for j = #raw, i, -1 do
-			if clear(at, raw[j]) then
+			if clear(at, raw[j]) and onSurface(at, raw[j]) then
 				best = j
 				break
 			end
@@ -1302,6 +1357,7 @@ local box = Vector3.new(
 
 	return smooth
 end
+
 
 
 local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
@@ -1964,6 +2020,7 @@ if state.pathChase and not state.lerpChase then
 			state.pathIdx += 1
 
 			if state.pathIdx > #path then
+			FlingNearby(model)
 				state.chasePath = nil
 			end
 		else
