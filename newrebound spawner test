@@ -9,7 +9,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
-
+-- jjd
 local idk = GetGitSound("https://github.com/eoyoustme/Impossible/blob/main/rebound%20jumpscare.mp3?raw=true", "uhhhhxhhs")
 
 local blueSound = Instance.new("Sound")
@@ -992,23 +992,22 @@ task.spawn(function()
 			ceasePaused = true
 			entity:Pause()
 
+task.spawn(function() 
 			TweenEntityFX(model, false, ceaseSaved)
+end) 
+
+task.wait(2.1)
 
 			repeat
 				task.wait()
-			until not entity:IsAlive()
-				or getgenv().CeaseStop == false
+			until getgenv().CeaseStop == false
 				or getgenv().CeaseStop == nil
-
-			if not entity:IsAlive() then
-				break
-			end
 
 			TweenEntityFX(model, true, ceaseSaved)
 			table.clear(ceaseSaved)
 
 			ceasePaused = false
-			entity:Resume()
+			model:SetAttribute("Paused", false)
 		end
 
 		task.wait(0.05)
@@ -1366,4 +1365,4 @@ Module.Unload = function(self)
 end
 
 getgenv().ReboundSpawnerReal = Module
-return Module
+return Module 
