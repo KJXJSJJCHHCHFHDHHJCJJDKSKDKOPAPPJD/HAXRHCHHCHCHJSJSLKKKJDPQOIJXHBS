@@ -137,6 +137,7 @@ local entity = Spawner:Create({
 
 entity:SetCallback("OnSpawned", function()
     print("Entity has spawned")
+getgenv().CeaseStop = true
     local v1 = require(game.ReplicatedStorage.CameraShaker)
 local _CurrentCamera = game.Workspace.CurrentCamera
 local v4 = v1.new(Enum.RenderPriority.Camera.Value, function(p3)
@@ -359,6 +360,8 @@ end)
 
 entity:SetCallback("OnDespawning", function()
     print("Entity is despawning")
+
+getgenv().CeaseStop = false
     
     task.spawn(function() 
     if getgenv().Desist then
