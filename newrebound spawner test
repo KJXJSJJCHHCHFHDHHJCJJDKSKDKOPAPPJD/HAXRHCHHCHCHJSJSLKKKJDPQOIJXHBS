@@ -9,7 +9,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- jjd
+
 local idk = GetGitSound("https://github.com/eoyoustme/Impossible/blob/main/rebound%20jumpscare.mp3?raw=true", "uhhhhxhhs")
 
 local blueSound = Instance.new("Sound")
@@ -1003,7 +1003,12 @@ task.wait(2.1)
 			until getgenv().CeaseStop == false
 				or getgenv().CeaseStop == nil
 
+task.spawn(function() 
 			TweenEntityFX(model, true, ceaseSaved)
+			end) 
+			
+			task.wait(2.2)
+			
 			table.clear(ceaseSaved)
 
 			ceasePaused = false
