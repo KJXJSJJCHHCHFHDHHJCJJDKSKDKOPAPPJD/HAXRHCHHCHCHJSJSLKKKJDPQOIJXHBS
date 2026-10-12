@@ -9,7 +9,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
-
+-- nx
 local idk = GetGitSound("https://github.com/eoyoustme/Impossible/blob/main/rebound%20jumpscare.mp3?raw=true", "uhhhhxhhs")
 
 local blueSound = Instance.new("Sound")
@@ -1127,7 +1127,7 @@ if hit then
 
 	task.spawn(function()
 		while entity:IsAlive() do
-	if getgenv().CeaseStop == true or model:GetAttribute("Paused") then
+	if getgenv().CeaseStop == true then
 		task.wait(0.05)
 		continue
 	end
@@ -1169,7 +1169,7 @@ end
 				break
 			end
 			
-			if getgenv().CeaseStop == true or model:GetAttribute("Paused") then
+			if getgenv().CeaseStop == true then
 	snd:Stop()
 	task.wait(0.05)
 	continue
