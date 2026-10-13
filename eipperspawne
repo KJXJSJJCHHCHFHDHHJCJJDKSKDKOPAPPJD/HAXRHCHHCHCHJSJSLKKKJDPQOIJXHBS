@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
-
+-- lj
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -958,10 +958,12 @@ end
 
 local function RunBla(entity)
 	local model = entity.Model
-	if not model or not model.Parent then return end
+if not model or not model.Parent then return end
 
-	local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
-	if not room then return end
+local eroom = GetRoomAtPoint(model:GetPivot().Position)
+if not eroom or tonumber(eroom.Name) ~= LatestRoom.Value then return end
+
+local room = eroom
 
 	local root = model:FindFirstChild("HumanoidRootPart")
 		or model.PrimaryPart
@@ -1189,6 +1191,8 @@ local function RipperHide(entity, door)
 		end
 	end
 	
+	getgenv().RipperHiding = true
+	
 	local snd = GetGitSound(
 		"https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/portaling.mp3?raw=true",
 		"lcllslkckcjjx"
@@ -1214,11 +1218,11 @@ task.spawn(function()
 	FadeSub(model) 
 	end) 
 	
-	task.wait(3)
+	task.wait(1.2)
 
 
 	if model.Parent then
-		getgenv().RipperHiding = true
+		
 		model:Destroy()
 	end
 end
