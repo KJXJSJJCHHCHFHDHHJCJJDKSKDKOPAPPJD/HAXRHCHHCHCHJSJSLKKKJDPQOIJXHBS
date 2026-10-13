@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- kfkd
+
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -1382,11 +1382,17 @@ local moveActive = true
 model:SetAttribute("RipperSideroomFound", false)
 
 task.spawn(function()
-	local room = GetCurrentRoom(false)
-	if not room then return end
+	local pos = model:GetPivot().Position
+local room = GetRoomAtPoint(pos)
 
-	local nodes = GetNodesFromRoom(room, false)
-	if #nodes == 0 then return end
+if not room then
+	room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+end
+
+if not room then return end
+
+local nodes = GetNodesFromRoom(room, false)
+if #nodes == 0 then return end
 
 	stopCeaseCheck = CeaseCheck(entity)
 
