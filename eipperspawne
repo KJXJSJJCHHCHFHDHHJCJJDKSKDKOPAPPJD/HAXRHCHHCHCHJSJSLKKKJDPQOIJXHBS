@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- hh
+-- js
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -1278,6 +1278,31 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 	task.wait(config.Movement.Delay)
 	task.spawn(entity.RunCallback, entity, "OnStartMoving")
 	
+	task.spawn(function()
+		
+
+		while model.Parent do
+		local rooms = workspace:WaitForChild("CurrentRooms")
+local latest = game:GetService("ReplicatedStorage").GameData.LatestRoom
+
+local room = rooms:FindFirstChild(tostring(latest.Value))
+		local door = room and room:FindFirstChild("Door")
+			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
+
+		local stop = false
+			if dist <= 8 then
+				moveActive = false
+				model:SetAttribute("RoomExitReached", true)
+				model:SetAttribute("CeasePaused", true)
+				entity:Pause()
+				RunBla(entity)
+				break
+			end
+
+			task.wait(0.01)
+		end
+	end)
+	
 	-- Loop kiểm tra hitbox và tương tác với player
 	task.spawn(function()
 		while entity:IsAlive() and task.wait() do
@@ -1439,30 +1464,7 @@ if #nodes == 0 then return end
 		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
 
 
-	task.spawn(function()
-		
-
-		while model.Parent do
-		local rooms = workspace:WaitForChild("CurrentRooms")
-local latest = game:GetService("ReplicatedStorage").GameData.LatestRoom
-
-local room = rooms:FindFirstChild(tostring(latest.Value))
-		local door = room and room:FindFirstChild("Door")
-			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
-
-		local stop = false
-			if dist <= 8 then
-				moveActive = false
-				model:SetAttribute("RoomExitReached", true)
-				model:SetAttribute("CeasePaused", true)
-				entity:Pause()
-				RunBla(entity)
-				break
-			end
-
-			task.wait(0.01)
-		end
-	end)
+	
 	end
 
 	moveActive = false
