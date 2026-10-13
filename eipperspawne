@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- js
+
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -1443,9 +1443,10 @@ if #nodes == 0 then return end
 		
 
 		while model.Parent do
-			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
-local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+		local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
 		local door = room and room:FindFirstChild("Door")
+			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
+
 		local stop = false
 			if dist <= 8 then
 				moveActive = false
