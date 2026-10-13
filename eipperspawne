@@ -1,6 +1,7 @@
+
 --[[ __ __ _ _ ______ _ _ _ _____ __ _____ \ \ / / (_) ( ) | ____| | | (_) | / ____| \ \ / /__ \ \ \ / / _ _ __ ___ ___ _|/ ___ | |__ _ __ | |_ _| |_ _ _ | (___ _ __ __ ___ ___ __ ___ _ __ \ \ / / ) | \ \/ / | | | '_ \| \ \/ / | | | / __| | __| | '_ \| __| | __| | | | \___ \| '_ \ / _` \ \ /\ / / '_ \ / _ \ '__| \ \/ / / / \ /| |_| | | | | |> <| |_| | \__ \ | |____| | | | |_| | |_| |_| | ____) | |_) | (_| |\ V V /| | | | __/ | \ / / /_ \/ \__, |_| |_|_/_/\_\\__,_| |___/ |______|_| |_|\__|_|\__|\__, | |_____/| .__/ \__,_| \_/\_/ |_| |_|\___|_| \/ |____| __/ | __/ | | | |___/ |___/ |_| ]]--
 
--- pao
+
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -1288,44 +1289,49 @@ local blaStarted = false
 	task.spawn(entity.RunCallback, entity, "OnStartMoving")
 	
 	task.spawn(function()
-	print("Door loop started", moveActive, blaStarted)
+	local ok, err = pcall(function()
+		print("Door loop started", moveActive, blaStarted)
 
-	while moveActive and entity:IsAlive() do
-		local pos = model:GetPivot().Position
-		local room = workspace.CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+		while moveActive and entity:IsAlive() do
+			local pos = model:GetPivot().Position
+			local rn = tostring(LatestRoom.Value)
+			local room = CurrentRooms:FindFirstChild(rn)
 
-		if not room then
-			print("Room is nil")
-		else
-			local door = room:FindFirstChild("Door")
+			print("CHECK:", rn, room, model.Parent)
 
-			if not door then
-				print("Door missing:", room.Name)
-			else
-				local dist = (pos - door:GetPivot().Position).Magnitude
+			if room then
+				local door = room:FindFirstChild("Door")
 
-				if dist <= 8 then
-					print("DIST REACHED:", room.Name, dist)
+				print("DOOR:", door)
 
-					blaStarted = true
-					moveActive = false
+				if door then
+					local dist = (pos - door:GetPivot().Position).Magnitude
+					print("DIST:", dist)
 
-					model:SetAttribute("RoomExitReached", true)
-					model:SetAttribute("CeasePaused", true)
-					entity:Pause()
+					if dist <= 8 then
+						blaStarted = true
+						moveActive = false
 
-					print("Entity has paused")
+						model:SetAttribute("RoomExitReached", true)
+						model:SetAttribute("CeasePaused", true)
+						entity:Pause()
 
-					task.spawn(function()
-						RunBla(entity)
-					end)
+						print("Entity has paused")
+						task.spawn(function()
+							RunBla(entity)
+						end)
 
-					break
+						break
+					end
 				end
 			end
-		end
 
-		task.wait(0.01)
+			task.wait(0.1)
+		end
+	end)
+
+	if not ok then
+		warn("DOOR LOOP ERROR:", err)
 	end
 
 	print("Door loop ended")
