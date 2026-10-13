@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- jd
+-- js
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -958,10 +958,8 @@ end
 
 local function RunBla(entity)
 	local model = entity.Model
-if not model or not model.Parent then return end
 
 local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
-if not room then return end
 
 	local root = model:FindFirstChild("HumanoidRootPart")
 		or model.PrimaryPart
@@ -1440,16 +1438,15 @@ if #nodes == 0 then return end
 
 		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
 
-		if i == #nodes then
-	task.spawn(function()
-		local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
-		local door = room and room:FindFirstChild("Door")
 
-		if not door then return end
+	task.spawn(function()
+		
 
 		while model.Parent do
 			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
-
+local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+		local door = room and room:FindFirstChild("Door")
+		local stop = false
 			if dist <= 8 then
 				moveActive = false
 				model:SetAttribute("RoomExitReached", true)
@@ -1462,9 +1459,6 @@ if #nodes == 0 then return end
 			task.wait(0.01)
 		end
 	end)
-
-	break
-end
 	end
 
 	moveActive = false
