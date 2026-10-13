@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
--- lj
+
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -1443,13 +1443,27 @@ if #nodes == 0 then return end
 		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
 
 		if i == #nodes then
+	
+
+	task.spawn(function()
+		while model.Parent do
+			local room = GetRoomAtPoint(model:GetPivot().Position)
+
+			if room and tonumber(room.Name) == LatestRoom.Value then
 			moveActive = false
-			model:SetAttribute("RoomExitReached", true)
-			model:SetAttribute("CeasePaused", true)
-			entity:Pause()
-			RunBla(entity)
-			break
+	model:SetAttribute("RoomExitReached", true)
+	model:SetAttribute("CeasePaused", true)
+	entity:Pause()
+				RunBla(entity)
+				break
+			end
+
+			task.wait(0.1)
 		end
+	end)
+
+	break
+end
 	end
 
 	moveActive = false
