@@ -1,5 +1,5 @@
 --[[ __ __ _ _ ______ _ _ _ _____ __ _____ \ \ / / (_) ( ) | ____| | | (_) | / ____| \ \ / /__ \ \ \ / / _ _ __ ___ ___ _|/ ___ | |__ _ __ | |_ _| |_ _ _ | (___ _ __ __ ___ ___ __ ___ _ __ \ \ / / ) | \ \/ / | | | '_ \| \ \/ / | | | / __| | __| | '_ \| __| | __| | | | \___ \| '_ \ / _` \ \ /\ / / '_ \ / _ \ '__| \ \/ / / / \ /| |_| | | | | |> <| |_| | \__ \ | |____| | | | |_| | |_| |_| | ____) | |_) | (_| |\ V V /| | | | __/ | \ / / /_ \/ \__, |_| |_|_/_/\_\\__,_| |___/ |______|_| |_|\__|_|\__|\__, | |_____/| .__/ \__,_| \_/\_/ |_| |_|\___|_| \/ |____| __/ | __/ | | | |___/ |___/ |_| ]]--
-
+-- ff
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
 loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Functions.lua"))()
@@ -672,11 +672,12 @@ local function EntityMoveTo(model: Model, cframe: CFrame, speed: number)
 	local connection
 	connection = RunService.Stepped:Connect(function(_, step)
 		-- Kiểm tra nếu entity bị pause hoặc đã chạm player (bắt bằng hitbox) thì dừng di chuyển
-		if model:GetAttribute("HitboxTriggered") then
-			connection:Disconnect()
-			reached = true
-			return
-		end
+		if model:GetAttribute("HitboxTriggered")
+	or model:GetAttribute("RipperSideroomFound") then
+	connection:Disconnect()
+	reached = true
+	return
+end
 		
 		if not model:GetAttribute("Paused") then
 			local pivot = model:GetPivot()
@@ -1076,6 +1077,119 @@ local function RunBla(entity)
 end
 
 
+local function FindRipperDoor(room)
+	if not room then return nil end
+
+	local list = {}
+
+	for _, v in ipairs(room:GetChildren()) do
+		if v:IsA("Model")
+			and (v.Name == "BaseSideroom" or v.Name == "BlockedDoorModel")
+			and v:GetAttribute("ForRipper") == true then
+			table.insert(list, v)
+		end
+	end
+
+	if #list == 0 then return nil end
+	return list[math.random(1, #list)]
+end
+
+local function RipperHide(entity, door)
+	local model = entity.Model
+	if not model or not model.Parent or not door or not door.Parent then return end
+
+	local col = door:FindFirstChild("Collision", true)
+	if not col or not col:IsA("BasePart") then return end
+
+	local reached = false
+	local conn
+
+	conn = RunService.Stepped:Connect(function(_, dt)
+		if not model.Parent or model:GetAttribute("HitboxTriggered") then
+			conn:Disconnect()
+			reached = true
+			return
+		end
+
+		local pivot = model:GetPivot()
+		local dif = col.Position - pivot.Position
+		local dist = dif.Magnitude
+
+		if dist <= 0.1 then
+			model:PivotTo(CFrame.new(col.Position) * pivot.Rotation)
+			conn:Disconnect()
+			reached = true
+			return
+		end
+
+		model:PivotTo(pivot + dif.Unit * math.min(entity.Config.Movement.Speed * dt, dist))
+	end)
+
+	repeat RunService.Stepped:Wait() until reached
+
+	if conn.Connected then conn:Disconnect() end
+	if not model.Parent or model:GetAttribute("HitboxTriggered") then return end
+
+	for _, v in ipairs(door:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = 1
+		end
+	end
+
+	local sounds = {}
+
+	for _, v in ipairs(model:GetDescendants()) do
+		if v:IsA("Sound") and (v.Name == "DoorOpen1" or v.Name == "DoorOpen2") then
+			table.insert(sounds, v)
+		end
+	end
+
+	local snd
+	if #sounds > 0 then
+		snd = sounds[math.random(1, #sounds)]
+		snd:Play()
+		snd.Ended:Wait()
+	end
+
+	if not model.Parent or model:GetAttribute("HitboxTriggered") then return end
+
+	entity:Pause()
+
+	local info = TweenInfo.new(0.7)
+	local tweens = {}
+
+	for _, v in ipairs(model:GetDescendants()) do
+		if v:IsA("Sound") then
+			local tw = TweenService:Create(v, info, {
+				PlaybackSpeed = 0
+			})
+			table.insert(tweens, tw)
+			tw:Play()
+
+		elseif v:IsA("ParticleEmitter") then
+			v.Transparency = NumberSequence.new(0)
+
+		elseif v:IsA("PointLight") then
+			local tw = TweenService:Create(v, info, {
+				Range = 0
+			})
+			table.insert(tweens, tw)
+			tw:Play()
+		end
+	end
+
+	for _, tw in ipairs(tweens) do
+		tw.Completed:Wait()
+	end
+
+	if model.Parent then
+		getgenv().RipperHiding = true
+		model:Destroy()
+	end
+end
+
+
+
 Module.Run = function(self, entity: any, copyEntity: boolean)
 	if copyEntity == true then
 		self:Run(CloneTable(entity), false)
@@ -1224,8 +1338,13 @@ Module.Run = function(self, entity: any, copyEntity: boolean)
 		end
 	end)
 	
+
 -- Phần xử lý di chuyển và pathfinding
 local stopCeaseCheck
+local ripperDoor
+local moveActive = true
+
+model:SetAttribute("RipperSideroomFound", false)
 
 task.spawn(function()
 	local room = GetCurrentRoom(false)
@@ -1236,31 +1355,70 @@ task.spawn(function()
 
 	stopCeaseCheck = CeaseCheck(entity)
 
+	task.spawn(function()
+		while moveActive and entity:IsAlive()
+			and not model:GetAttribute("HitboxTriggered")
+			and not model:GetAttribute("RipperSideroomFound") do
+
+			local pos = model:GetPivot().Position
+			local room = GetRoomAtPoint(pos)
+
+			if room then
+				local door = FindRipperDoor(room)
+
+				if door then
+					ripperDoor = door
+					model:SetAttribute("RipperSideroomFound", true)
+					break
+				end
+			end
+
+			task.wait()
+		end
+	end)
+
 	for i, n in ipairs(nodes) do
-		if model:GetAttribute("HitboxTriggered") then break end
-		if not model.Parent then break end
+		if model:GetAttribute("HitboxTriggered")
+			or model:GetAttribute("RipperSideroomFound")
+			or not model.Parent then
+			break
+		end
 
 		local cf = n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
 		EntityMoveTo(model, cf, config.Movement.Speed)
 
-		if model:GetAttribute("HitboxTriggered") then break end
-		if not model.Parent then break end
+		if model:GetAttribute("HitboxTriggered") or not model.Parent then
+			break
+		end
+
+		if model:GetAttribute("RipperSideroomFound") then
+			break
+		end
 
 		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
 
 		if i == #nodes then
-	model:SetAttribute("RoomExitReached", true)
-	model:SetAttribute("CeasePaused", true)
-	entity:Pause()
-	RunBla(entity)
-	break
-end
+			moveActive = false
+			model:SetAttribute("RoomExitReached", true)
+			model:SetAttribute("CeasePaused", true)
+			entity:Pause()
+			RunBla(entity)
+			break
+		end
 	end
+
+	moveActive = false
 
 	if stopCeaseCheck then
 		stopCeaseCheck()
 	end
+
+	if ripperDoor and entity:IsAlive()
+		and not model:GetAttribute("HitboxTriggered") then
+		RipperHide(entity, ripperDoor)
+	end
 end)
+
 end
 
 if not getgenv()._internal_vynixu_entity_spawner then
