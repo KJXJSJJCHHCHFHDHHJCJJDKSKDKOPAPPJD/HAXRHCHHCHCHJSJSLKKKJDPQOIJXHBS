@@ -8,7 +8,7 @@ local function GetGitSound(url, name)
 	snd.SoundId = (getcustomasset or getsynasset)(name .. ".mp3")
 	return snd
 end
-
+-- jd
 
 if getgenv().RipperSpawnerBla then return getgenv().RipperSpawnerBla end
 -- jxbbb
@@ -960,10 +960,8 @@ local function RunBla(entity)
 	local model = entity.Model
 if not model or not model.Parent then return end
 
-local eroom = GetRoomAtPoint(model:GetPivot().Position)
-if not eroom or tonumber(eroom.Name) ~= LatestRoom.Value then return end
-
-local room = eroom
+local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+if not room then return end
 
 	local root = model:FindFirstChild("HumanoidRootPart")
 		or model.PrimaryPart
@@ -1452,7 +1450,7 @@ if #nodes == 0 then return end
 		while model.Parent do
 			local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
 
-			if dist <= 5 then
+			if dist <= 8 then
 				moveActive = false
 				model:SetAttribute("RoomExitReached", true)
 				model:SetAttribute("CeasePaused", true)
