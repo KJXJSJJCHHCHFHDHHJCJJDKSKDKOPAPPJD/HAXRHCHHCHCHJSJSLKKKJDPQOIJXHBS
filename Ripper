@@ -1,6 +1,8 @@
 
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local blaSound
+local hidingMode = getgenv().RipperHiding == true
 
 local speed
 
@@ -181,7 +183,7 @@ local Spawner = loadstring(game:HttpGet("https://raw.githubusercontent.com/iccdj
 local entity = Spawner:Create({
 	Entity = {
 		Name = "RipperBla",
-		Asset = "https://github.com/eoyoustme/Hardcore/blob/main/RipperMoving.rbxm?raw=true",
+		Asset = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_131351567799504_Model_RipperMovingkkd_1791822177.txt",
 		HeightOffset = 4
 	},
 	Lights = {
@@ -202,7 +204,7 @@ local entity = Spawner:Create({
 	},
 	Movement = {
 		Speed = speed,
-		Delay = 3,
+		Delay = 4,
 		Reversed = false
 	},
 	Rebounding = {
@@ -213,7 +215,7 @@ local entity = Spawner:Create({
 		Delay = 2
 	},
 	Damage = {
-		Enabled = true,
+		Enabled = false,
 		Range = 50,
 		Amount = 0.001
 	},
@@ -234,17 +236,77 @@ local entity = Spawner:Create({
 
 entity:SetCallback("OnSpawned", function()
 	print("Entity has spawned")
+	task.spawn(function() 
+	if hidingMode then
+	repeat
+	modelentity = entity.Model
+	task.wait(0.1)
+until not modelentity
+	
+	local rooms = workspace:WaitForChild("CurrentRooms")
+local latest = game:GetService("ReplicatedStorage").GameData.LatestRoom
+
+local room
+repeat
+	room = rooms:FindFirstChild(tostring(latest.Value))
+	task.wait(0.1)
+until room and room:FindFirstChild("BlockedDoorModel", true)
+task.wait(1)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/KJXJSJJCHHCHFHDHHJCJJDKSKDKOPAPPJD/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/Ripper"))() 
+end
+end) 
 	
 	task.spawn(function() 
 	CheckHiding()
 	end) 
-
-	light(4, Color3.fromRGB(85, 0, 0), Color3.fromRGB(255, 0, 0))
 	
-	local entityModel = workspace:FindFirstChild("RipperBla")
+	if hidingMode then
+light(4, Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0))
+else
+	light(2, Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 0, 0))
+	end
+	
+	local entityModel = entity.Model
 		local ripe = entityModel and entityModel:FindFirstChild("Ripe")
 	
-	local Github = GetGitSound("https://github.com/cakmay227-svg/random/raw/refs/heads/main/XRecorder_Edited_20260801_01.mp3?raw=true", "jjjciie")
+	
+task.spawn(function()
+if not hidingMode then
+		local sound5 = Instance.new("Sound")
+		sound5.PlaybackSpeed = 1
+		sound5.Volume = 1.8
+		sound5.SoundId = "rbxassetid://101665501585468"
+		sound5.Parent = workspace
+		sound5:Play()
+
+		wait(7)
+		sound5:Destroy()
+		end
+	end)
+end)
+
+entity:SetCallback("OnStartMoving", function()
+	print("Entity has started moving")
+	local entityModel = entity.Model
+		local ripe = entityModel and entityModel:FindFirstChild("Ripe")
+	
+	local urls = {
+	{
+		"https://github.com/cakmay227-svg/random/raw/refs/heads/main/XRecorder_Edited_20260801_01.mp3?raw=true",
+		"jjjciie"
+	},
+	{
+		"https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Ripper%20bresking%20stuff%202.mp3",
+		"kdjjccj"
+	}, 
+	{
+		"https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/RipperBreakingstuff3.mp3",
+		"jckdkxjchjjdj"
+	}
+}
+
+local pick = urls[math.random(1, #urls)]
+local Github = GetGitSound(pick[1], pick[2])
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -255,6 +317,7 @@ breaking.PlaybackSpeed = 1
 breaking.Parent = workspace
 breaking.Looped = false
 breaking.RollOffMaxDistance = 1000000000
+
 breaking.Volume = 6
 
 local player = Players.LocalPlayer
@@ -291,70 +354,14 @@ task.spawn(function()
 			conn:Disconnect()
 		end
 	end)
-end)
-
-	task.spawn(function()
-		local sound5 = Instance.new("Sound")
-		sound5.PlaybackSpeed = 1
-		sound5.Volume = 1.8
-		sound5.SoundId = "rbxassetid://101665501585468"
-		sound5.Parent = workspace
-		sound5:Play()
-
-		wait(7)
-		sound5:Destroy()
 	end)
-end)
-
-entity:SetCallback("OnStartMoving", function()
-	print("Entity has started moving")
 	
 	task.spawn(function() 
+	if not hidingMode then
 repeat task.wait() until getgenv().CeaseStop == nil or getgenv().CeaseStop == false
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iccdjkkkkskskhdgdgegvbfbgncjjdudejdjvi/REBLAHARDCOREDI/refs/heads/main/Flingingstuff"))() 
+	end
 	end) 
-	
-	task.spawn(function()
-
-		local blueSound = entity.Model.Ripe.FarStatic
-
-		local gitSoundTemp = GetGitSound("https://github.com/eoyoustme/Hardcore/blob/main/ripper%20static%20final.mp3?raw=true", "Ripper")
-
-		blueSound.SoundId = gitSoundTemp.SoundId
-		blueSound.PlaybackSpeed = 0.37
-		blueSound.Looped = true
-		blueSound.TimePosition = 8.868
-		blueSound.Volume = 0.733
-
-		gitSoundTemp:Destroy()
-
-		blaSound.Parent = entity.Model.Ripe
-
-		local ReallyNear = entity.Model.Ripe.ReallyCloseStatic
-
-		local Github = GetGitSound("https://github.com/eoyoustme/Hardcore/blob/main/ripper%20static%20final.mp3?raw=true", "Ripper")
-
-		ReallyNear.SoundId = Github.SoundId
-		ReallyNear.PlaybackSpeed = 0.5
-		ReallyNear.Looped = true
-		ReallyNear.TimePosition = 6.158
-		ReallyNear.Volume = 0.733
-
-		Github:Destroy()
-
-		local Close = entity.Model.Ripe.CloseStatic
-
-		local cui = GetGitSound("https://github.com/eoyoustme/Hardcore/blob/main/ripper%20sound%20effecrs%20%20new.mp3?raw=true", "lolang")
-
-		Close.SoundId = cui.SoundId
-		Close.PlaybackSpeed = 1
-		Close.Looped = true
-		Close.TimePosition = 12.932
-		Close.Volume = 1.51
-
-		cui:Destroy()
-
-	end)
 end)
 
 local hasTriggered = false
