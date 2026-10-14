@@ -1261,80 +1261,311 @@ end
 
 
 
+
 Module.Run = function(self, entity: any, copyEntity: boolean)
 	if copyEntity == true then
 		self:Run(CloneTable(entity), false)
 		return
 	end
-	
+
 	if entity.Model:GetAttribute("Running") then return end
-	
+
 	do
 		local rebounding = entity.Config.Rebounding
 		if rebounding.Enabled and (rebounding.Min <= 0 or rebounding.Max <= 0 or rebounding.Min > rebounding.Max) then
 			error(string.format(debug.traceback("Invalid rebounding minmax values: %s - %s"), rebounding.Min, rebounding.Max))
 		end
 	end
-	
+
 	local model = entity.Model
 	local config = entity.Config
 	local debug = entity.Debug
 	local moveActive = true
-local blaStarted = false
-	
+	local blaStarted = false
+	local hidingMode = getgenv().RipperHiding == true
+	local hidingDoor
+
+	if hidingMode then
+		getgenv().RipperHiding = false
+	end
+
 	model:SetAttribute("Running", true)
 	self.ActiveEntities[#self.ActiveEntities + 1] = entity
-	
+
 	local spawnPoint: BasePart? = nil
-	do
+
+	if hidingMode then
+		local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+		local doors = {}
+
+		if room then
+			for _, v in ipairs(room:GetChildren()) do
+				if v:IsA("Model") and v.Name == "BlockedDoorModel" then
+					local col = v:FindFirstChild("Collision", true)
+					if col and col:IsA("BasePart") then
+						table.insert(doors, {door = v, col = col})
+					end
+				end
+			end
+		end
+
+		if #doors > 0 then
+			local chosen = doors[math.random(1, #doors)]
+			hidingDoor = chosen.door
+			spawnPoint = chosen.col
+		end
+	else
 		local rooms = CurrentRooms:GetChildren()
+
 		if config.Movement.Reversed then
-			spawnPoint = rooms[#rooms]:FindFirstChild("RoomExit")
+			spawnPoint = rooms[#rooms] and rooms[#rooms]:FindFirstChild("RoomExit")
 		else
-			spawnPoint = rooms[1]:FindFirstChild("RoomEntrance")
+			spawnPoint = rooms[1] and rooms[1]:FindFirstChild("RoomEntrance")
 		end
 	end
-	
+
 	if not spawnPoint then
+		model:SetAttribute("Running", false)
 		error(string.format(debug.traceback("Failed to find spawn point for entity: '%s'"), config.Entity.Name))
 	end
-	
-	model:PivotTo(spawnPoint.CFrame + Vector3.new(0, config.Entity.HeightOffset, 0))
+
+	model:PivotTo(spawnPoint.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0))
 	model.Parent = workspace
 	task.spawn(entity.RunCallback, entity, "OnSpawned")
-	
-	local currentRoom = GetCurrentRoom(false)
-	if currentRoom then
-		if config.Lights.Flicker.Enabled then
-			Modules.Module_Events.flicker(currentRoom, config.Lights.Flicker.Duration)
-		end
-		if config.Earthquake.Enabled then
-			task.spawn(Earthquake)
+
+	if hidingMode and hidingDoor then
+		for _, v in ipairs(hidingDoor:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.Transparency = 1
+			end
+
+			if v.Name == "RipperHidingLight" then
+				v:Destroy()
+			end
 		end
 	end
-	
-	task.wait(config.Movement.Delay)
-	task.spawn(entity.RunCallback, entity, "OnStartMoving")
-	
+
+	if not hidingMode then
+		local currentRoom = GetCurrentRoom(false)
+
+		if currentRoom then
+			if config.Lights.Flicker.Enabled then
+				Modules.Module_Events.flicker(currentRoom, config.Lights.Flicker.Duration)
+			end
+
+			if config.Earthquake.Enabled then
+				task.spawn(Earthquake)
+			end
+		end
+	end
+
 	task.spawn(function()
-	local ok, err = pcall(function()
-		print("Door loop started", moveActive, blaStarted)
+		while entity:IsAlive() and task.wait() do
+			if model:GetAttribute("Paused")
+				or model:GetAttribute("HitboxTriggered")
+				or model:GetAttribute("CeasePaused")
+				or model:GetAttribute("RoomExitReached") then
+				continue
+			end
 
-		while moveActive and entity:IsAlive() do
-			local pos = model:GetPivot().Position
-			local rn = tostring(LatestRoom.Value)
-			local room = CurrentRooms:FindFirstChild(rn)
+			local origin = model:GetPivot().Position
+			local charOrigin = RootPart.Position
+			local dist = (charOrigin - origin).Magnitude
+			local inSight = false
 
-			print("CHECK:", rn, room, model.Parent)
+			if dist <= config.Damage.Range then
+				local params = RaycastParams.new()
+				params.FilterType = Enum.RaycastFilterType.Exclude
+				params.FilterDescendantsInstances = {
+					Character,
+					model,
+					CollectionService:GetTagged("HidingSpot")
+				}
+				inSight = workspace:Raycast(origin, charOrigin - origin, params) == nil
+			end
+
+			if Humanoid.Health > 0 then
+				local _, visible = Camera:WorldToViewportPoint(origin)
+				if visible then
+					task.spawn(entity.RunCallback, entity, "OnLookAt", inSight)
+				end
+			end
+
+			local room = GetRoomAtPoint(origin)
+
+			if room then
+				local index = tonumber(room.Name)
+
+				if index and index >= 0 and index ~= model:GetAttribute("LastEnteredRoom") then
+					model:SetAttribute("LastEnteredRoom", index)
+
+					local entered = model:FindFirstChild("RoomsEntered")
+
+					if entered then
+						local firstTime = entered:GetAttribute(room.Name) == nil
+						task.spawn(entity.RunCallback, entity, "OnEnterRoom", room, firstTime)
+
+						if firstTime then
+							entered:SetAttribute(room.Name, true)
+						end
+
+						local latestRoom = GetCurrentRoom(true)
+
+						if room ~= latestRoom then
+							if config.Lights.Shatter then
+								Modules.Module_Events.shatter(room)
+							elseif config.Lights.Repair then
+								FixRoomLights(room)
+							end
+						end
+					end
+				end
+			end
+
+			local usedCrucifix = false
+			local crucifixion = config.Crucifixion
+
+			if crucifixion.Enabled
+				and crucifixion.Range > 0
+				and dist <= crucifixion.Range
+				and inSight then
+
+				local hasTool, tool = PlayerHasItemEquipped("Crucifix")
+
+				if hasTool and tool and not model:GetAttribute("BeingBanished") then
+					if typeof(debug.CrucifixionOverwrite) == "function" then
+						entity:RunCallback("CrucifixionOverwrite")
+					else
+						model:SetAttribute("Paused", true)
+						CrucifixEntity(entity, tool)
+					end
+
+					usedCrucifix = true
+				end
+			end
+
+			if not model:GetAttribute("Paused") and not usedCrucifix then
+				local damage = config.Damage
+
+				if damage.Enabled
+					and damage.Range > 0
+					and Humanoid.Health > 0
+					and (not Character:GetAttribute("Hiding") or damage.IgnoreHiding)
+					and model:GetAttribute("Damage")
+					and not model:GetAttribute("BeingBanished")
+					and dist <= damage.Range
+					and inSight then
+
+					model:SetAttribute("Damage", false)
+					model:SetAttribute("HitboxTriggered", true)
+					DamagePlayer(entity)
+					break
+				end
+			end
+
+			local camShake = config.CameraShake
+
+			if camShake.Enabled and camShake.Range > 0 and dist <= camShake.Range then
+				local cloned = {}
+
+				for i, v in next, camShake.Values do
+					cloned[i] = v
+				end
+
+				cloned[1] = camShake.Values[1] / camShake.Range * (camShake.Range - dist)
+				cloned[2] = camShake.Values[2] / camShake.Range * (camShake.Range - dist)
+
+				Modules.Main_Game.camShaker:ShakeOnce(table.unpack(cloned))
+			end
+		end
+	end)
+
+	if hidingMode then
+		task.spawn(function()
+			local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
+			local entrance = room and room:FindFirstChild("RoomEntrance")
+
+			if not room or not entrance or not entrance:IsA("BasePart") then
+				entity:Despawn()
+				return
+			end
+
+			task.wait(2)
+
+			if not entity:IsAlive() or model:GetAttribute("HitboxTriggered") then
+				return
+			end
+
+			local function move(cf, speed)
+				while entity:IsAlive()
+					and not model:GetAttribute("HitboxTriggered")
+					and not model:GetAttribute("Paused") do
+
+					local dt = RunService.Heartbeat:Wait()
+					local p = model:GetPivot()
+					local d = cf.Position - p.Position
+
+					if d.Magnitude <= 0.1 then
+						model:PivotTo(cf)
+						return true
+					end
+
+					model:PivotTo(p + d.Unit * math.min(speed * dt, d.Magnitude))
+				end
+
+				return false
+			end
+
+			task.spawn(entity.RunCallback, entity, "OnStartMoving")
+
+			if not move(
+				entrance.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0),
+				180
+			) then
+				return
+			end
+
+			local nodes = GetNodesFromRoom(room, true)
+
+			for i, n in ipairs(nodes) do
+				if i == 1 or n.Name == "0" then
+					continue
+				end
+
+				if not move(
+					n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0),
+					config.Movement.Speed
+				) then
+					return
+				end
+
+				task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
+			end
+
+			if entity:IsAlive() and not model:GetAttribute("HitboxTriggered") then
+				entity:Despawn()
+			end
+		end)
+
+		return
+	end
+
+	task.wait(config.Movement.Delay)
+	if not entity:IsAlive() then return end
+
+	task.spawn(entity.RunCallback, entity, "OnStartMoving")
+
+	task.spawn(function()
+		while moveActive and entity:IsAlive()
+			and not model:GetAttribute("HitboxTriggered") do
+
+			local room = CurrentRooms:FindFirstChild(tostring(LatestRoom.Value))
 
 			if room then
 				local door = room:FindFirstChild("Door")
 
-				print("DOOR:", door)
-
 				if door then
-					local dist = (pos - door:GetPivot().Position).Magnitude
-					print("DIST:", dist)
+					local dist = (model:GetPivot().Position - door:GetPivot().Position).Magnitude
 
 					if dist <= 8 then
 						blaStarted = true
@@ -1344,7 +1575,6 @@ local blaStarted = false
 						model:SetAttribute("CeasePaused", true)
 						entity:Pause()
 
-						print("Entity has paused")
 						task.spawn(function()
 							RunBla(entity)
 						end)
@@ -1358,186 +1588,74 @@ local blaStarted = false
 		end
 	end)
 
-	if not ok then
-		warn("DOOR LOOP ERROR:", err)
-	end
+	local stopCeaseCheck
+	local ripperDoor
 
-	print("Door loop ended")
-end)
-	
-	-- Loop kiểm tra hitbox và tương tác với player
+	model:SetAttribute("RipperSideroomFound", false)
+
 	task.spawn(function()
-		while entity:IsAlive() and task.wait() do
-			if model:GetAttribute("Paused") or model:GetAttribute("HitboxTriggered") or model:GetAttribute("CeasePaused") or model:GetAttribute("RoomExitReached") then continue end
-			
-			local origin = model:GetPivot().Position
-			local charOrigin = RootPart.Position
-			
-			local inSight = false
-			if (charOrigin - origin).Magnitude <= config.Damage.Range then
-				local params = RaycastParams.new()
-				params.FilterType = Enum.RaycastFilterType.Exclude
-				params.FilterDescendantsInstances = {Character, model, CollectionService:GetTagged("HidingSpot")}
-				inSight = workspace:Raycast(origin, charOrigin - origin, params) == nil
-			end
-			
-			if Humanoid.Health > 0 then
-				local _, isVisible = Camera:WorldToViewportPoint(origin)
-				if isVisible then
-					task.spawn(entity.RunCallback, entity, "OnLookAt", inSight)
-				end
-			end
-			
-			do
-				local room = GetRoomAtPoint(origin)
+		local nodes = GetPathfindNodesAmbush(config)
+		if #nodes == 0 then return end
+
+		stopCeaseCheck = CeaseCheck(entity)
+
+		task.spawn(function()
+			while moveActive
+				and entity:IsAlive()
+				and not model:GetAttribute("HitboxTriggered")
+				and not model:GetAttribute("RipperSideroomFound") do
+
+				local room = GetRoomAtPoint(model:GetPivot().Position)
+
 				if room then
-					local index = tonumber(room.Name)
-					if index and index >= 0 and index ~= model:GetAttribute("LastEnteredRoom") then
-						model:SetAttribute("LastEnteredRoom", index)
-						local roomsEntered = model:FindFirstChild("RoomsEntered") :: Folder
-						if roomsEntered then
-							local firstTime = roomsEntered:GetAttribute(room.Name) == nil
-							task.spawn(entity.RunCallback, entity, "OnEnterRoom", room, firstTime)
-							if firstTime then
-								roomsEntered:SetAttribute(room.Name, true)
-							end
-							local latestRoom = GetCurrentRoom(true)
-							if room ~= latestRoom then
-								if config.Lights.Shatter then
-									Modules.Module_Events.shatter(room)
-								elseif config.Lights.Repair then
-									FixRoomLights(room)
-								end
-							end
-						end
+					local door = FindRipperDoor(room)
+
+					if door then
+						ripperDoor = door
+						model:SetAttribute("RipperSideroomFound", true)
+						break
 					end
 				end
+
+				task.wait()
 			end
-			
-			local usedCrucifix = false
-			do
-				local crucifixion = config.Crucifixion
-				if crucifixion.Enabled and crucifixion.Range > 0 and (charOrigin - origin).Magnitude <= crucifixion.Range and inSight then
-					local hasTool, tool = PlayerHasItemEquipped("Crucifix")
-					if hasTool and tool and not model:GetAttribute("BeingBanished") then
-						if typeof(debug.CrucifixionOverwrite) == "function" then
-							entity:RunCallback("CrucifixionOverwrite")
-						else
-							model:SetAttribute("Paused", true)
-							CrucifixEntity(entity, tool)
-						end
-						usedCrucifix = true
-					end
-				end
+		end)
+
+		for _, n in ipairs(nodes) do
+			if model:GetAttribute("HitboxTriggered")
+				or model:GetAttribute("RipperSideroomFound")
+				or not model.Parent then
+				break
 			end
-			
-			-- Kiểm tra hitbox bắt được LocalPlayer
-			if not model:GetAttribute("Paused") and not usedCrucifix then
-				local damage = config.Damage
-				if damage.Enabled and damage.Range > 0 and Humanoid.Health > 0 and (not Character:GetAttribute("Hiding") or damage.IgnoreHiding) and model:GetAttribute("Damage") and not model:GetAttribute("BeingBanished") and (charOrigin - origin).Magnitude <= damage.Range and inSight then
-					model:SetAttribute("Damage", false)
-					model:SetAttribute("HitboxTriggered", true) -- Đánh dấu hitbox đã bắt được player
-					DamagePlayer(entity)
-					break -- Ngừng vòng lặp kiểm tra
-				end
+
+			EntityMoveTo(
+				model,
+				n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0),
+				config.Movement.Speed
+			)
+
+			if model:GetAttribute("HitboxTriggered")
+				or model:GetAttribute("RipperSideroomFound")
+				or not model.Parent then
+				break
 			end
-			
-			do
-				local camShake = config.CameraShake
-				if camShake.Enabled then
-					local mag = (charOrigin - origin).Magnitude
-					if mag <= camShake.Range then
-						local cloned = {}
-						for i, v in next, camShake.Values do
-							cloned[i] = v
-						end
-						cloned[1] = camShake.Values[1] / camShake.Range * (camShake.Range - mag)
-						cloned[2] = camShake.Values[2] / camShake.Range * (camShake.Range - mag)
-						Modules.Main_Game.camShaker:ShakeOnce(table.unpack(cloned))
-					end
-				end
-			end
+
+			task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
+		end
+
+		moveActive = false
+
+		if stopCeaseCheck then
+			stopCeaseCheck()
+		end
+
+		if ripperDoor and entity:IsAlive()
+			and not model:GetAttribute("HitboxTriggered") then
+			RipperHide(entity, ripperDoor)
 		end
 	end)
-	
-
--- Phần xử lý di chuyển và pathfinding
-local stopCeaseCheck
-local ripperDoor
-
-model:SetAttribute("RipperSideroomFound", false)
-
-task.spawn(function()
-	local nodes = GetPathfindNodesAmbush(config)
-if #nodes == 0 then return end
-
-for _, n in ipairs(nodes) do
-    print("NODE:", n.Name, "POS:", n.Position)
 end
 
-	stopCeaseCheck = CeaseCheck(entity)
-
-	task.spawn(function()
-		while moveActive and entity:IsAlive()
-			and not model:GetAttribute("HitboxTriggered")
-			and not model:GetAttribute("RipperSideroomFound") do
-
-			local pos = model:GetPivot().Position
-			local room = GetRoomAtPoint(pos)
-
-			if room then
-				local door = FindRipperDoor(room)
-
-				if door then
-					ripperDoor = door
-					model:SetAttribute("RipperSideroomFound", true)
-					break
-				end
-			end
-
-			task.wait()
-		end
-	end)
-
-	for i, n in ipairs(nodes) do
-   
-
-    if model:GetAttribute("HitboxTriggered")
-        or model:GetAttribute("RipperSideroomFound")
-        or not model.Parent then
-        break
-    end
-
-		local cf = n.CFrame + Vector3.new(0, 3 + config.Entity.HeightOffset, 0)
-		EntityMoveTo(model, cf, config.Movement.Speed)
-
-		if model:GetAttribute("HitboxTriggered") or not model.Parent then
-			break
-		end
-
-		if model:GetAttribute("RipperSideroomFound") then
-			break
-		end
-
-		task.spawn(entity.RunCallback, entity, "OnReachedNode", n)
-
-
-	
-	end
-
-	moveActive = false
-
-	if stopCeaseCheck then
-		stopCeaseCheck()
-	end
-
-	if ripperDoor and entity:IsAlive()
-		and not model:GetAttribute("HitboxTriggered") then
-		RipperHide(entity, ripperDoor)
-	end
-end)
-
-end
 
 if not getgenv()._internal_vynixu_entity_spawner then
 	getgenv()._internal_vynixu_entity_spawner = true
