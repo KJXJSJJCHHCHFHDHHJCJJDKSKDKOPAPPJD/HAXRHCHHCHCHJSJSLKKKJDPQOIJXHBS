@@ -157,6 +157,10 @@ task.spawn(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/PAKKALCKKWKKJXIODKRBFHHAUJCJJJSNDJ/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/ModifierSystem.lua"))()
 end) 
 
+task.spawn(function() 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/KJXJSJJCHHCHFHDHHJCJJDKSKDKOPAPPJD/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/RipperHidingSubroom"))()
+end) 
+
 task.spawn(function()
 SafeLoadFileCached("https://raw.githubusercontent.com/cakmay227-svg/REBLAHARDCOREDI/refs/heads/main/Hidable-Table")
 end)
