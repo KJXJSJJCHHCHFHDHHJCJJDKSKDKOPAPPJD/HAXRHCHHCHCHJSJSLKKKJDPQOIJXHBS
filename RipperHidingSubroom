@@ -1,0 +1,62 @@
+local rep = game:GetService("ReplicatedStorage")
+local rooms = workspace:WaitForChild("CurrentRooms")
+local latest = rep:WaitForChild("GameData"):WaitForChild("LatestRoom")
+
+local file = "RipperSideRoom.txt"
+local url = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_6839171747_Model_RipperSideRoom_1791823338.txt"
+
+if not isfile(file) then
+	writefile(file, game:HttpGet(url))
+end
+
+local asset = getcustomasset(file)
+local done = {}
+
+
+local function Apply(room)
+	if done[room] then return end
+	done[room] = true
+
+	for _, door in ipairs(room:GetChildren()) do
+		if door:IsA("Model") and door.Name == "BlockedDoorModel" then
+			local col = door:FindFirstChild("Collision", true)
+
+			if col and col:IsA("BasePart") then
+				local ok, model = pcall(function()
+					return game:GetObjects(asset)[1]
+				end)
+
+				if ok and model then
+					model.Parent = workspace
+
+					local start = model:FindFirstChild("Start", true)
+
+					if start and start:IsA("BasePart") then
+						local target = col.CFrame * CFrame.Angles(0, math.pi, 0)
+						local offset = start.CFrame:ToObjectSpace(model:GetPivot())
+
+						model:PivotTo(target * offset)
+
+						if math.random(1, 100) <= 70 then
+							door:SetAttribute("ForRipper", true)
+						end
+					else
+						model:Destroy()
+					end
+				end
+			end
+		end
+	end
+end
+
+
+for _, room in ipairs(rooms:GetChildren()) do
+	task.spawn(Apply, room)
+end
+
+rooms.ChildAdded:Connect(function(room)
+task.wait(2)
+	task.spawn(Apply, room)
+end)
+
+
