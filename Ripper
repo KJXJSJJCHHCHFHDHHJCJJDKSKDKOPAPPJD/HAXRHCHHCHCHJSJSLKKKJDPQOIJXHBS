@@ -220,7 +220,7 @@ local entity = Spawner:Create({
 		Amount = 0.001
 	},
 	Crucifixion = {
-		Enabled = true,
+		Enabled = false,
 		Range = 40,
 		Resist = false,
 		Break = true
@@ -236,25 +236,7 @@ local entity = Spawner:Create({
 
 entity:SetCallback("OnSpawned", function()
 	print("Entity has spawned")
-	task.spawn(function() 
-	if hidingMode then
-	repeat
-	modelentity = entity.Model
-	task.wait(0.1)
-until not modelentity
 	
-	local rooms = workspace:WaitForChild("CurrentRooms")
-local latest = game:GetService("ReplicatedStorage").GameData.LatestRoom
-
-local room
-repeat
-	room = rooms:FindFirstChild(tostring(latest.Value))
-	task.wait(0.1)
-until room and room:FindFirstChild("BlockedDoorModel", true)
-task.wait(1)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/KJXJSJJCHHCHFHDHHJCJJDKSKDKOPAPPJD/HAXRHCHHCHCHJSJSLKKKJDPQOIJXHBS/refs/heads/main/Ripper"))() 
-end
-end) 
 	
 	task.spawn(function() 
 	CheckHiding()
@@ -287,6 +269,8 @@ end)
 
 entity:SetCallback("OnStartMoving", function()
 	print("Entity has started moving")
+	
+
 	local entityModel = entity.Model
 		local ripe = entityModel and entityModel:FindFirstChild("Ripe")
 	
@@ -388,6 +372,7 @@ end)
 
 entity:SetCallback("OnDespawning", function()
 	print("Entity is despawning")
+	
 	task.spawn(function() 
 	CheckNoHidingCount()
 	end) 
