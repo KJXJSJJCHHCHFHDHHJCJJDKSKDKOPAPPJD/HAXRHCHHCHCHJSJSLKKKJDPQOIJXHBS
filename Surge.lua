@@ -1,3 +1,4 @@
+
 local breakingb = false
 
 local function GetGitSound(url, name)
@@ -68,13 +69,9 @@ for i = 1, math.min(light, #models) do
 table.insert(lights, models[i])
 end
 
-repeat 
-task.wait(0.1)
-until breakingb == true
-
 for _, v in ipairs(lights) do
 ev.breakSingleLight(v)
-task.wait(0.1)
+task.wait(0.2)
 end
 
 task.wait(1.3)
