@@ -215,7 +215,7 @@ local entity = Spawner:Create({
 		Delay = 2
 	},
 	Damage = {
-		Enabled = false,
+		Enabled = true,
 		Range = 50,
 		Amount = 0.001
 	},
