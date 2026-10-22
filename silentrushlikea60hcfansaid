@@ -6,7 +6,7 @@ local Spawner = loadstring(game:HttpGet("https://raw.githubusercontent.com/KJXJS
 
 local entity = Spawner:Create({
 	Entity = {
-		Name = "RushMoving",
+		Name = "RushMovingjjc",
 		Asset = "https://github.com/lynguyen26031993-design/-u/raw/refs/heads/main/Place_6839171747_Model_RushBlab_1791605219.txt",
 		HeightOffset = 0
 	},
