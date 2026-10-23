@@ -1356,7 +1356,8 @@ task.spawn(function()
 					"hello ! it me ! pease !", 
 					"BETTER THAN MAYHEM FIGHT ME MIST >:3", 
 					"lolmat can i get automatic graphication - freeman", 
-					"The malevolent rug guys" 
+					"The malevolent rug guys", 
+					"No Lighter WAHHHHH ice spike in room so harder to exit! (best idea dude trust)" 
 				}
 				local chosenCaption = captionTexts[math.random(#captionTexts)]
 
